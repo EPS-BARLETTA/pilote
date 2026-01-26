@@ -29,14 +29,14 @@
             <p class="eyebrow">Phrase à dire</p>
             <button class="btn ghost tiny-btn" id="crisisPhraseBtn" type="button">Autre phrase</button>
           </div>
-          <p id="crisisPhrase" class="crisis-text">« Je vois que c’est dur pour toi. On fait une pause. Je suis là. »</p>
+          <p id="crisisPhrase" class="crisis-text">« Je vois que c'est dur pour toi. On fait une pause. Je suis là. »</p>
         </article>
         <article class="crisis-card">
           <p class="eyebrow">Action immédiate</p>
           <p class="crisis-text">Pause maintenant.</p>
           <ul class="action-list">
             <li>⏱️ 2 minutes sans parler</li>
-            <li>🪑 Coin calme / s’éloigner du bruit</li>
+            <li>🪑 Coin calme / s'éloigner du bruit</li>
             <li>🌬️ Respiration lente ensemble</li>
           </ul>
           <p class="micro-copy">On ne règle rien pendant la pause.</p>
@@ -55,12 +55,22 @@
 
     <section class="card lock-banner" id="parentLockBanner">
       <h2>Déverrouiller vos réglages</h2>
-      <p>Ce code empêche simplement les petites mains de modifier l’outil.</p>
+      <p>Ce code empêche simplement les petites mains de modifier l'outil.</p>
       <form id="parentUnlockForm" class="pin-form">
         <label for="parentPinInput">Votre code</label>
         <input id="parentPinInput" type="password" inputmode="numeric" maxlength="6" required />
         <button type="submit">Ouvrir</button>
         <p class="micro-copy" id="pinReminder">Définissez votre PIN personnel dès que possible.</p>
+      </form>
+    </section>
+
+    <section class="card pin-setup" id="pinSetupPanel" hidden>
+      <h2>Définir votre code PIN</h2>
+      <p class="small">Choisissez un code à 4 à 6 chiffres pour protéger l'espace enfant.</p>
+      <form id="pinSetupForm" class="pin-form">
+        <label for="pinSetupInput">Nouveau code</label>
+        <input id="pinSetupInput" type="password" inputmode="numeric" minlength="4" maxlength="6" required />
+        <button type="submit">Enregistrer</button>
       </form>
     </section>
 
@@ -98,7 +108,7 @@
       <article class="card">
         <h2>Stratégies proposées</h2>
         <form id="strategyForm" class="stack-form">
-          <p class="micro-copy">Entre 3 et 5 idées stables. Elles apparaissent telles quelles pour l’enfant.</p>
+          <p class="micro-copy">Entre 3 et 5 idées stables. Elles apparaissent telles quelles pour l'enfant.</p>
           <div class="field-group" id="strategyFields"></div>
           <button type="submit">Enregistrer</button>
         </form>
@@ -116,7 +126,7 @@
 
       <article class="card">
         <h2>Récompenses</h2>
-        <p class="micro-copy reward-note">Les récompenses servent à encourager les efforts. Elles ne se négocient pas quand l’émotion est trop forte. On valide après la pause ou la réparation.</p>
+        <p class="micro-copy reward-note">Les récompenses servent à encourager les efforts. Elles ne se négocient pas quand l'émotion est trop forte. On valide après la pause ou la réparation.</p>
         <form id="rewardForm" class="stack-form">
           <label>Récompenses immédiates</label>
           <textarea data-reward="immediate" rows="3" placeholder="Moment câlin, puzzle, jeu calme..."></textarea>

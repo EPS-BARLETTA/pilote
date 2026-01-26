@@ -3,7 +3,7 @@ const EMOTION_LEVELS = {
   1: 'Calme',
   2: 'OK',
   3: 'Chargé',
-  4: 'Besoin d’aide',
+  4: 'Besoin d'aide',
   5: 'Trop plein',
 };
 
@@ -48,7 +48,7 @@ const SCRIPT_LIBRARY = [
   {
     title: 'Après (apprentissage)',
     lines: [
-      '« Qu’est-ce qui t’a aidé ? »',
+      '« Qu'est-ce qui t'a aidé ? »',
       '« On garde cette idée. »',
       '« On essaiera plus tôt la prochaine fois. »',
     ],
@@ -59,21 +59,21 @@ const OBJECTIVE_LIBRARY = [
   { id: 'reg-pause', label: 'Demander une pause quand ça devient trop dur' },
   { id: 'reg-level', label: 'Repérer quand mon moteur est à 3' },
   { id: 'reg-tool', label: 'Utiliser un outil pour redescendre' },
-  { id: 'reg-help', label: 'Accepter l’aide d’un adulte' },
+  { id: 'reg-help', label: 'Accepter l'aide d'un adulte' },
   { id: 'reg-return', label: 'Revenir après une pause' },
   { id: 'eng-start', label: 'Commencer une tâche sans repousser' },
   { id: 'eng-step', label: 'Faire le premier petit pas' },
-  { id: 'eng-ask', label: 'Demander de l’aide au lieu d’abandonner' },
-  { id: 'rel-say', label: 'Dire quand quelque chose m’énerve' },
+  { id: 'eng-ask', label: 'Demander de l'aide au lieu d'abandonner' },
+  { id: 'rel-say', label: 'Dire quand quelque chose m'énerve' },
   { id: 'rel-repair', label: 'Réparer après un débordement' },
   { id: 'rel-listen', label: 'Écouter une consigne courte' },
   { id: 'rel-try', label: 'Essayer une autre solution quand ça ne marche pas' },
 ];
 
 const CRISIS_PHRASES = [
-  '« Je vois que c’est dur pour toi. On fait une pause. Je suis là. »',
+  '« Je vois que c'est dur pour toi. On fait une pause. Je suis là. »',
   '« Ton moteur est trop chargé. On fait une pause. »',
-  '« Je t’aide. On respire d’abord. »',
+  '« Je t'aide. On respire d'abord. »',
 ];
 
 const TRIGGER_OPTIONS = [
@@ -121,6 +121,7 @@ const DEFAULT_STATE = {
 
 let state = loadState();
 let crisisPhraseIndex = 0;
+let breathInterval;
 
 document.addEventListener('DOMContentLoaded', () => {
   ensureObjectiveStatus();
@@ -148,9 +149,14 @@ function initChildPage() {
     badgeList: document.getElementById('badgeList'),
     rewardOfDay: document.getElementById('rewardOfDay'),
     focusSummary: document.getElementById('focusSummary'),
+    breathTrigger: document.getElementById('tool-breath'),
+    breathModal: document.getElementById('breath-modal'),
+    breathLabel: document.getElementById('breath-label'),
+    breathClose: document.getElementById('breath-close'),
   };
 
   renderChildView(refs);
+  setupBreathModal(refs);
 
   refs.meterButtons.forEach(button => {
     button.addEventListener('click', () => handleLevelSelection(Number(button.dataset.level), refs));
@@ -180,7 +186,6 @@ function initChildPage() {
     renderChildView(refs);
     showToast('Nouvelle journée, on repart sereinement.');
   });
-
 }
 
 function renderChildView(refs) {
@@ -211,6 +216,39 @@ function renderChildView(refs) {
   renderFocusSummary(refs.focusSummary);
 }
 
+function setupBreathModal(refs) {
+  if (!refs.breathModal || !refs.breathTrigger || !refs.breathClose) return;
+  refs.breathTrigger.addEventListener('click', () => openBreathModal(refs));
+  refs.breathClose.addEventListener('click', () => closeBreathModal(refs));
+  refs.breathModal.addEventListener('click', event => {
+    if (event.target === refs.breathModal) {
+      closeBreathModal(refs);
+    }
+  });
+}
+
+function openBreathModal(refs) {
+  refs.breathModal.hidden = false;
+  updateBreathLabel(refs, true);
+  clearInterval(breathInterval);
+  let inhale = false;
+  breathInterval = setInterval(() => {
+    inhale = !inhale;
+    updateBreathLabel(refs, inhale);
+  }, 3000);
+}
+
+function updateBreathLabel(refs, inhale) {
+  if (refs.breathLabel) {
+    refs.breathLabel.textContent = inhale ? 'Inspire…' : 'Expire…';
+  }
+}
+
+function closeBreathModal(refs) {
+  refs.breathModal.hidden = true;
+  clearInterval(breathInterval);
+}
+
 function handleLevelSelection(level, refs) {
   state.currentLevel = level;
   state.emotionHistory.push({ level, timestamp: new Date().toISOString() });
@@ -220,7 +258,7 @@ function handleLevelSelection(level, refs) {
   saveState();
   renderChildView(refs);
   if (level >= 4) {
-    showToast('Pause conseillée, tu peux demander de l’aide.');
+    showToast('Pause conseillée, tu peux demander de l'aide.');
   }
 }
 
@@ -321,7 +359,7 @@ function renderFocusSummary(el) {
     el.textContent = `Objectif du moment : ${state.focus.skill}${notes}`;
     return;
   }
-  el.textContent = 'Ton parent ajoutera ici l’objectif du moment.';
+  el.textContent = 'Ton parent ajoutera ici l'objectif du moment.';
 }
 
 function initParentPage() {
@@ -331,6 +369,9 @@ function initParentPage() {
     unlockForm: document.getElementById('parentUnlockForm'),
     pinInput: document.getElementById('parentPinInput'),
     pinReminder: document.getElementById('pinReminder'),
+    pinSetupPanel: document.getElementById('pinSetupPanel'),
+    pinSetupForm: document.getElementById('pinSetupForm'),
+    pinSetupInput: document.getElementById('pinSetupInput'),
     lockBtn: document.querySelector('[data-action="lock-parent"]'),
     crisisPhrase: document.getElementById('crisisPhrase'),
     crisisPhraseBtn: document.getElementById('crisisPhraseBtn'),
@@ -360,10 +401,7 @@ function initParentPage() {
   renderObjectiveChoices(refs);
   renderTriggerOptions(refs);
   populateParentForms(refs);
-
-  if (refs.pinReminder) {
-    refs.pinReminder.style.display = state.pinCustom ? 'none' : 'block';
-  }
+  updatePinPanels(refs);
 
   refs.unlockForm.addEventListener('submit', event => {
     event.preventDefault();
@@ -377,6 +415,21 @@ function initParentPage() {
   });
 
   refs.lockBtn?.addEventListener('click', () => setParentLocked(refs, true));
+
+  refs.pinSetupForm?.addEventListener('submit', event => {
+    event.preventDefault();
+    const newPin = refs.pinSetupInput?.value.trim();
+    if (!/^[0-9]{4,6}$/.test(newPin || '')) {
+      showToast('Le code doit comporter 4 à 6 chiffres.');
+      return;
+    }
+    state.pin = newPin;
+    state.pinCustom = true;
+    refs.pinSetupInput.value = '';
+    saveState();
+    updatePinPanels(refs);
+    showToast('PIN enregistré. Vous pouvez ouvrir la tour de contrôle.');
+  });
 
   refs.crisisPhraseBtn?.addEventListener('click', () => {
     cycleCrisisPhrase(refs);
@@ -453,9 +506,7 @@ function initParentPage() {
     refs.pinInputNew.value = '';
     saveState();
     showToast('Code PIN mis à jour.');
-    if (refs.pinReminder) {
-      refs.pinReminder.style.display = 'none';
-    }
+    updatePinPanels(refs);
   });
 }
 
@@ -465,6 +516,19 @@ function setParentLocked(refs, locked) {
   }
   if (refs.content) {
     refs.content.classList.toggle('is-locked', locked);
+  }
+}
+
+function updatePinPanels(refs) {
+  const hasCustom = state.pinCustom;
+  if (refs.pinSetupPanel) {
+    refs.pinSetupPanel.hidden = hasCustom;
+  }
+  if (refs.unlockForm) {
+    refs.unlockForm.style.display = hasCustom ? '' : 'none';
+  }
+  if (refs.pinReminder) {
+    refs.pinReminder.style.display = hasCustom ? 'none' : 'block';
   }
 }
 
@@ -622,6 +686,9 @@ function initBilanPage() {
     unlockForm: document.getElementById('bilanUnlockForm'),
     pinInput: document.getElementById('bilanPinInput'),
     lockBtn: document.querySelector('[data-action="lock-bilan"]'),
+    summaryHelps: document.getElementById('summaryHelps'),
+    summaryChallenge: document.getElementById('summaryChallenge'),
+    summaryNext: document.getElementById('summaryNext'),
     childReviewForm: document.getElementById('childReviewForm'),
     parentReviewForm: document.getElementById('parentReviewForm'),
     childReviewFields: {
@@ -645,6 +712,7 @@ function initBilanPage() {
   setBilanLocked(refs, true);
   populateReviewForms(refs);
   renderEmotionHistory(refs.emotionHistory);
+  renderBilanSummary(refs);
 
   refs.unlockForm.addEventListener('submit', event => {
     event.preventDefault();
@@ -666,6 +734,7 @@ function initBilanPage() {
     });
     saveState();
     showToast('Bilan enfant enregistré.');
+    renderBilanSummary(refs);
   });
 
   refs.parentReviewForm?.addEventListener('submit', event => {
@@ -675,6 +744,7 @@ function initBilanPage() {
     });
     saveState();
     showToast('Bilan parent enregistré.');
+    renderBilanSummary(refs);
   });
 
   refs.exportJsonBtn?.addEventListener('click', () => {
@@ -742,6 +812,17 @@ function populateReviewForms(refs) {
   Object.entries(refs.parentReviewFields || {}).forEach(([key, field]) => {
     if (field) field.value = state.reviews.parent[key] || '';
   });
+}
+
+function renderBilanSummary(refs) {
+  if (!refs.summaryHelps || !refs.summaryChallenge || !refs.summaryNext) return;
+  refs.summaryHelps.textContent =
+    state.reviews.child.helps || state.reviews.parent.strategies || 'À compléter.';
+  refs.summaryChallenge.textContent =
+    state.reviews.parent.risks || state.reviews.child.try || 'À compléter.';
+  const primary = getPrimaryObjective();
+  const next = primary?.label || state.focus.skill || 'À définir.';
+  refs.summaryNext.textContent = next;
 }
 
 function renderEmotionHistory(list) {

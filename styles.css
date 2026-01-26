@@ -278,6 +278,11 @@ body[data-page="child"] .container {
   background: #f2f7ff;
 }
 
+.breath-trigger {
+  background: #fff;
+  border: 1px dashed rgba(47, 111, 237, 0.3);
+}
+
 .carnet {
   margin-top: 12px;
 }
@@ -292,6 +297,10 @@ body[data-page="child"] .container {
 }
 
 .carnet summary::marker {
+  display: none;
+}
+
+.carnet summary::-webkit-details-marker {
   display: none;
 }
 
@@ -314,6 +323,43 @@ body[data-page="child"] .container {
 .nested-card {
   margin: 0;
   box-shadow: none;
+}
+
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  z-index: 1000;
+}
+
+.modal[hidden] {
+  display: none;
+}
+
+.modal-card {
+  width: min(420px, 100%);
+  background: #fff;
+  border-radius: 18px;
+  padding: 18px;
+  text-align: center;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15);
+}
+
+.breath-sphere {
+  width: 180px;
+  height: 180px;
+  border-radius: 999px;
+  margin: 12px auto 10px;
+  background: radial-gradient(circle at 30% 30%, #ffffff, #cfe3ff);
+  animation: breathe 6s ease-in-out infinite;
+}
+
+.breath-label {
+  font-size: 1.1rem;
+  margin: 6px 0 14px;
 }
 
 .objective-list {
@@ -460,6 +506,31 @@ body[data-page="child"] .container {
 .lock-banner {
   border: 1px dashed var(--border);
   margin-bottom: 16px;
+}
+
+.summary-card {
+  margin-bottom: 16px;
+}
+
+.summary-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.summary-list span {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.summary-questions {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-weight: 600;
 }
 
 .lockable.is-locked {
@@ -691,5 +762,23 @@ body[data-page="child"] .container {
 
   .objective-choices {
     grid-template-columns: 1fr;
+  }
+}
+
+@keyframes breathe {
+  0% {
+    transform: scale(0.85);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(0.85);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .breath-sphere {
+    animation: none;
   }
 }

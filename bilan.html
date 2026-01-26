@@ -15,6 +15,19 @@
       <button class="btn ghost" data-action="lock-bilan" type="button">Verrouiller</button>
     </header>
 
+    <section class="card summary-card">
+      <h2>Semaine en un coup d'œil</h2>
+      <ul class="summary-list">
+        <li>Ce qui aide le plus : <span id="summaryHelps">À compléter.</span></li>
+        <li>Moment le plus difficile : <span id="summaryChallenge">À compléter.</span></li>
+        <li>Objectif pour la semaine prochaine : <span id="summaryNext">À définir.</span></li>
+      </ul>
+      <div class="summary-questions">
+        <p>Qu'est-ce qui t'a aidé ?</p>
+        <p>Qu'est-ce qu'on essaie plus tôt la prochaine fois ?</p>
+      </div>
+    </section>
+
     <section class="card lock-banner" id="bilanLockBanner">
       <p>Accès protégé : code PIN requis.</p>
       <form id="bilanUnlockForm" class="pin-form">
@@ -28,7 +41,7 @@
       <article class="card">
         <h2>Bilan enfant</h2>
         <form id="childReviewForm" class="stack-form">
-          <label for="childHelps">Ce qui m’aide le plus</label>
+          <label for="childHelps">Ce qui m'aide le plus</label>
           <textarea id="childHelps" rows="3"></textarea>
           <label for="childProud">Ce dont je suis fier</label>
           <textarea id="childProud" rows="3"></textarea>

@@ -11,17 +11,15 @@
     <header class="child-hero">
       <div class="copilot-avatar" aria-hidden="true">🛟</div>
       <div>
-        <p class="eyebrow">Mon cockpit</p>
+        <p class="eyebrow">Ton copilote</p>
         <h1>Mon cockpit</h1>
         <p class="small">Ici, tu es en sécurité. On va redescendre ensemble.</p>
-        <p class="small help-text">Choisis ton niveau. Si c’est trop dur, on fait une pause.</p>
+        <p class="small help-text">Choisis ton niveau. Si c'est trop dur, on fait une pause.</p>
       </div>
     </header>
 
     <nav class="child-nav" aria-label="Navigation">
       <a href="index.html" class="nav-pill">Accueil</a>
-      <a href="parent.html" class="nav-pill">Tour de contrôle</a>
-      <a href="bilan.html" class="nav-pill">Bilan</a>
     </nav>
 
     <section class="card" aria-labelledby="meterTitle">
@@ -48,7 +46,7 @@
         <button type="button" data-level="4">
           <span aria-hidden="true">😣</span>
           <strong>4</strong>
-          <span class="tiny">Besoin d’aide</span>
+          <span class="tiny">Besoin d'aide</span>
         </button>
         <button type="button" data-level="5">
           <span aria-hidden="true">😡</span>
@@ -56,14 +54,14 @@
           <span class="tiny">Trop plein</span>
         </button>
       </div>
-      <p class="micro-copy meter-note">Il n’y a pas de mauvaise réponse.</p>
+      <p class="micro-copy meter-note">Il n'y a pas de mauvaise réponse.</p>
     </section>
 
     <section class="card pause-card" id="pauseCard" hidden>
       <div>
         <h2>Mon bouton pause</h2>
-        <p class="small">Demander une pause, c’est une compétence.</p>
-        <p class="micro-copy">Chaque pause demandée, c’est une victoire. +1 jeton.</p>
+        <p class="small">Demander une pause, c'est une compétence.</p>
+        <p class="micro-copy">Chaque pause demandée, c'est une victoire. +1 jeton.</p>
       </div>
       <button class="btn btn-primary big-pause" id="pauseButton" type="button">🛑 Je me mets en pause</button>
     </section>
@@ -71,12 +69,13 @@
     <section class="card tool-card" id="toolCard" hidden>
       <div class="card-head">
         <h2>Mes freins (choisis-en un)</h2>
-        <p class="small">Celui qui t’aide le plus maintenant.</p>
+        <p class="small">Celui qui t'aide le plus maintenant.</p>
       </div>
+      <button id="tool-breath" class="btn breath-trigger" type="button">🌬️ Respirer avec la sphère</button>
       <div class="tools" id="toolList"></div>
     </section>
 
-    <details class="card carnet" id="morePanel">
+    <details class="card carnet" id="childCarnet">
       <summary>Mon carnet</summary>
       <div class="carnet-content">
         <article class="card nested-card">
@@ -93,7 +92,7 @@
             <h2>Mes jetons</h2>
             <p class="token-count" id="tokenCount">0</p>
           </div>
-          <p class="micro-copy">Chaque pause demandée, c’est un jeton d’effort.</p>
+          <p class="micro-copy">Chaque pause demandée, c'est un jeton d'effort.</p>
           <ul id="badgeList" class="badge-list"></ul>
         </article>
 
@@ -116,6 +115,14 @@
         </article>
       </div>
     </details>
+
+    <div id="breath-modal" class="modal" hidden>
+      <div class="modal-card">
+        <div class="breath-sphere" aria-hidden="true"></div>
+        <div id="breath-label" class="breath-label">Inspire…</div>
+        <button id="breath-close" class="btn btn-primary" type="button">J'ai fini</button>
+      </div>
+    </div>
   </main>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
