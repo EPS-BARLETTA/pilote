@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PILOTE – Tour de contrôle</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body data-page="parent">
+  <main class="container dashboard">
+    <header class="page-hero">
+      <p class="eyebrow">Espace parent</p>
+      <h1>Tour de contrôle</h1>
+      <p class="small">
+        Routines, scripts et récompenses validées pour soutenir la co-régulation. Tout se passe hors ligne,
+        uniquement pour vous.
+      </p>
+      <button class="btn ghost" data-action="lock-parent" type="button">Verrouiller</button>
+    </header>
+
+    <section class="card lock-banner" id="parentLockBanner">
+      <p>Accès protégé : saisissez le code PIN pour déverrouiller.</p>
+      <form id="parentUnlockForm" class="pin-form">
+        <label for="parentPinInput">Code PIN</label>
+        <input id="parentPinInput" type="password" inputmode="numeric" maxlength="6" required />
+        <button type="submit">Déverrouiller</button>
+        <p class="micro-copy">Code par défaut : 1234 (modifiable plus bas).</p>
+      </form>
+    </section>
+
+    <div class="grid lockable is-locked" id="parentContent">
+      <article class="card span-2">
+        <div class="card-head">
+          <h2>Objectif prioritaire de la semaine</h2>
+          <button class="btn ghost" data-action="clear-focus" type="button">Effacer</button>
+        </div>
+        <form id="focusForm" class="stack-form">
+          <label for="focusInput">Compétence travaillée</label>
+          <input id="focusInput" type="text" placeholder="Ex : Demander une pause avant de déborder" />
+          <label for="focusNotes">Repères pour l’enfant</label>
+          <textarea id="focusNotes" rows="3" placeholder="Une phrase simple à afficher dans l’espace enfant."></textarea>
+          <button type="submit">Enregistrer</button>
+        </form>
+      </article>
+
+      <article class="card">
+        <h2>Routines</h2>
+        <form id="routineForm" class="stack-form">
+          <label>Routine du matin</label>
+          <textarea data-routine="morning" rows="3" placeholder="3 étapes maximum."></textarea>
+          <label>Routine des devoirs</label>
+          <textarea data-routine="homework" rows="3" placeholder="Guidage simple pour limiter la surcharge."></textarea>
+          <label>Routine du soir</label>
+          <textarea data-routine="evening" rows="3" placeholder="Rassurer et anticiper la nuit."></textarea>
+          <button type="submit">Sauvegarder les routines</button>
+        </form>
+      </article>
+
+      <article class="card">
+        <h2>Déclencheurs fréquents</h2>
+        <form id="triggerForm" class="stack-form">
+          <textarea id="triggerInput" rows="5" placeholder="Bruit, transitions, fatigue..."></textarea>
+          <button type="submit">Mettre à jour</button>
+        </form>
+      </article>
+
+      <article class="card">
+        <h2>Stratégies proposées</h2>
+        <form id="strategyForm" class="stack-form">
+          <p class="micro-copy">Entre 3 et 5 idées stables. Elles apparaissent telles quelles pour l’enfant.</p>
+          <div class="field-group" id="strategyFields"></div>
+          <button type="submit">Enregistrer</button>
+        </form>
+      </article>
+
+      <article class="card">
+        <h2>Micro-objectifs</h2>
+        <form id="objectiveForm" class="stack-form">
+          <p class="micro-copy">1 à 3 objectifs, identiques toute la semaine.</p>
+          <div class="field-group" id="objectiveFields"></div>
+          <button type="submit">Enregistrer</button>
+        </form>
+      </article>
+
+      <article class="card">
+        <h2>Récompenses</h2>
+        <form id="rewardForm" class="stack-form">
+          <label>Récompenses immédiates</label>
+          <textarea data-reward="immediate" rows="3" placeholder="Moment câlin, puzzle..."></textarea>
+          <label>Récompenses programmées</label>
+          <textarea data-reward="planned" rows="3" placeholder="Balade, vélo, cinéma..."></textarea>
+          <label>Récompenses symboliques</label>
+          <textarea data-reward="symbolic" rows="3" placeholder="Badges, messages..."></textarea>
+          <button type="submit">Publier pour l’enfant</button>
+        </form>
+      </article>
+
+      <article class="card span-2">
+        <h2>Scripts parentaux</h2>
+        <div class="scripts" id="scriptList"></div>
+      </article>
+
+      <article class="card">
+        <h2>Code PIN</h2>
+        <form id="pinForm" class="stack-form">
+          <label for="pinInput">Nouveau code (4 à 6 chiffres)</label>
+          <input id="pinInput" type="password" inputmode="numeric" minlength="4" maxlength="6" placeholder="••••" />
+          <button type="submit">Mettre à jour</button>
+        </form>
+      </article>
+    </div>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="app.js" defer></script>
+</body>
+</html>

@@ -91,120 +91,45 @@ const DEFAULT_STATE = {
 };
 
 let state = loadState();
-const panelLocks = { parent: true, bilan: true };
-const refs = {};
 
-init();
-
-function init() {
-  cacheElements();
+document.addEventListener('DOMContentLoaded', () => {
   ensureObjectiveStatus();
-  setupNavigation();
-  setupBarometer();
-  setupPauseButton();
-  setupObjectives();
-  setupParentForms();
-  setupLocking();
-  setupReviewForms();
-  setupExportImport();
-  renderScripts();
-  renderAll();
-}
+  const page = document.body?.dataset?.page;
+  if (page === 'child') {
+    initChildPage();
+  } else if (page === 'parent') {
+    initParentPage();
+  } else if (page === 'bilan') {
+    initBilanPage();
+  }
+});
 
-function cacheElements() {
-  refs.navButtons = document.querySelectorAll('.nav-link');
-  refs.sections = document.querySelectorAll('main .panel');
-  refs.currentWeekLabel = document.getElementById('currentWeekLabel');
-  refs.currentLevelLabel = document.getElementById('currentLevelLabel');
-  refs.barometerButtons = document.querySelectorAll('.barometer-step');
-  refs.pauseButton = document.getElementById('pauseButton');
-  refs.strategyList = document.getElementById('strategyList');
-  refs.rewardList = document.getElementById('rewardList');
-  refs.objectiveList = document.getElementById('objectiveList');
-  refs.focusSummary = document.getElementById('focusSummary');
-  refs.tokenCount = document.getElementById('tokenCount');
-  refs.badgeList = document.getElementById('badgeList');
-  refs.emotionHistory = document.getElementById('emotionHistory');
-  refs.resetObjectivesBtn = document.getElementById('resetObjectivesBtn');
-  refs.parentLockBanner = document.getElementById('parentLockBanner');
-  refs.parentContent = document.getElementById('parentContent');
-  refs.bilanLockBanner = document.getElementById('bilanLockBanner');
-  refs.bilanContent = document.getElementById('bilanContent');
-  refs.parentUnlockForm = document.getElementById('parentUnlockForm');
-  refs.parentPinInput = document.getElementById('parentPinInput');
-  refs.bilanUnlockForm = document.getElementById('bilanUnlockForm');
-  refs.bilanPinInput = document.getElementById('bilanPinInput');
-  refs.focusForm = document.getElementById('focusForm');
-  refs.focusInput = document.getElementById('focusInput');
-  refs.focusNotes = document.getElementById('focusNotes');
-  refs.routineForm = document.getElementById('routineForm');
-  refs.routineFields = document.querySelectorAll('#routineForm textarea[data-routine]');
-  refs.triggerForm = document.getElementById('triggerForm');
-  refs.triggerInput = document.getElementById('triggerInput');
-  refs.strategyForm = document.getElementById('strategyForm');
-  refs.strategyFields = document.getElementById('strategyFields');
-  refs.objectiveForm = document.getElementById('objectiveForm');
-  refs.objectiveFields = document.getElementById('objectiveFields');
-  refs.rewardForm = document.getElementById('rewardForm');
-  refs.rewardInputs = document.querySelectorAll('#rewardForm textarea[data-reward]');
-  refs.scriptList = document.getElementById('scriptList');
-  refs.pinForm = document.getElementById('pinForm');
-  refs.pinInput = document.getElementById('pinInput');
-  refs.childReviewForm = document.getElementById('childReviewForm');
-  refs.parentReviewForm = document.getElementById('parentReviewForm');
-  refs.childReviewFields = {
-    helps: document.getElementById('childHelps'),
-    proud: document.getElementById('childProud'),
-    try: document.getElementById('childTry'),
+function initChildPage() {
+  const refs = {
+    meterButtons: document.querySelectorAll('.meter button[data-level]'),
+    levelStatus: document.getElementById('levelStatus'),
+    pauseCard: document.getElementById('pauseCard'),
+    pauseButton: document.getElementById('pauseButton'),
+    toolList: document.getElementById('toolList'),
+    objectiveList: document.getElementById('objectiveList'),
+    resetObjectivesBtn: document.getElementById('resetObjectivesBtn'),
+    tokenCount: document.getElementById('tokenCount'),
+    badgeList: document.getElementById('badgeList'),
+    rewardOfDay: document.getElementById('rewardOfDay'),
+    focusSummary: document.getElementById('focusSummary'),
+    moreToggle: document.getElementById('moreToggle'),
+    morePanel: document.getElementById('morePanel'),
   };
-  refs.parentReviewFields = {
-    risks: document.getElementById('parentRisks'),
-    strategies: document.getElementById('parentStrategies'),
-    structure: document.getElementById('parentStructure'),
-  };
-  refs.exportJsonBtn = document.getElementById('exportJsonBtn');
-  refs.exportCsvBtn = document.getElementById('exportCsvBtn');
-  refs.importFile = document.getElementById('importFile');
-  refs.toast = document.getElementById('toast');
-  refs.lockParentBtn = document.querySelector('[data-action="lock-parent"]');
-  refs.lockBilanBtn = document.querySelector('[data-action="lock-bilan"]');
-  refs.clearFocusBtn = document.querySelector('[data-action="clear-focus"]');
-}
 
-function setupNavigation() {
-  refs.navButtons.forEach(button => {
-    button.addEventListener('click', () => {
-      const target = button.dataset.target;
-      refs.navButtons.forEach(btn => btn.classList.toggle('active', btn === button));
-      refs.sections.forEach(section => {
-        section.classList.toggle('active', section.id === target);
-      });
-    });
+  renderChildView(refs);
+
+  refs.meterButtons.forEach(button => {
+    button.addEventListener('click', () => handleLevelSelection(Number(button.dataset.level), refs));
   });
-}
 
-function setupBarometer() {
-  refs.barometerButtons.forEach(button => {
-    button.addEventListener('click', () => {
-      const level = Number(button.dataset.level);
-      handleLevelSelection(level);
-    });
-  });
-}
+  refs.pauseButton?.addEventListener('click', () => handlePauseRequest(refs));
 
-function setupPauseButton() {
-  refs.pauseButton.addEventListener('click', () => {
-    state.pauseHistory.push({ timestamp: new Date().toISOString() });
-    addTokens(1, 'Pause demandée');
-    saveState();
-    renderBadges();
-    showToast('Pause enclenchée. Respire, tu gères !');
-  });
-}
-
-function setupObjectives() {
-  renderObjectiveFields();
-  refs.objectiveList.addEventListener('change', event => {
+  refs.objectiveList?.addEventListener('change', event => {
     if (!event.target.matches('input[type="checkbox"]')) return;
     const id = event.target.dataset.objective;
     const checked = event.target.checked;
@@ -213,315 +138,98 @@ function setupObjectives() {
     if (checked && !previous) {
       addTokens(1, 'Objectif validé');
       state.objectiveCompletions += 1;
-      renderBadges();
     }
     saveState();
-    renderObjectives();
+    renderChildView(refs);
   });
 
-  refs.resetObjectivesBtn.addEventListener('click', () => {
+  refs.resetObjectivesBtn?.addEventListener('click', () => {
     Object.keys(state.objectiveStatus).forEach(key => {
       state.objectiveStatus[key] = false;
     });
     saveState();
-    renderObjectives();
+    renderChildView(refs);
     showToast('Nouvelle journée, on repart sereinement.');
   });
+
+  refs.moreToggle?.addEventListener('click', () => {
+    const hidden = refs.morePanel?.hidden ?? true;
+    if (refs.morePanel) {
+      refs.morePanel.hidden = !hidden;
+    }
+    refs.moreToggle.textContent = hidden ? 'Fermer mon carnet' : 'Mon carnet';
+  });
 }
 
-function setupParentForms() {
-  renderStrategyFields();
-  refs.focusForm.addEventListener('submit', event => {
-    event.preventDefault();
-    state.focus.skill = refs.focusInput.value.trim();
-    state.focus.notes = refs.focusNotes.value.trim();
-    saveState();
-    renderFocusSummary();
-    showToast('Objectif hebdo mis à jour.');
+function renderChildView(refs) {
+  if (!refs) return;
+  refs.meterButtons?.forEach(button => {
+    button.classList.toggle('is-selected', Number(button.dataset.level) === state.currentLevel);
   });
-
-  refs.routineForm.addEventListener('submit', event => {
-    event.preventDefault();
-    refs.routineFields.forEach(area => {
-      state.routines[area.dataset.routine] = area.value.trim();
-    });
-    saveState();
-    showToast('Routines sauvegardées.');
-  });
-
-  refs.triggerForm.addEventListener('submit', event => {
-    event.preventDefault();
-    state.triggers = refs.triggerInput.value.trim();
-    saveState();
-    showToast('Déclencheurs mis à jour.');
-  });
-
-  refs.strategyForm.addEventListener('submit', event => {
-    event.preventDefault();
-    const values = Array.from(refs.strategyFields.querySelectorAll('input'))
-      .map(input => input.value.trim())
-      .filter(Boolean);
-    if (values.length < 3) {
-      showToast('Ajoutez au moins 3 idées stables.');
-      return;
-    }
-    state.strategies = values.slice(0, 5);
-    saveState();
-    renderStrategies();
-    showToast('Nouvelles stratégies proposées.');
-  });
-
-  refs.objectiveForm.addEventListener('submit', event => {
-    event.preventDefault();
-    const inputs = Array.from(refs.objectiveFields.querySelectorAll('input'));
-    const newObjectives = [];
-    inputs.forEach((input, index) => {
-      const label = input.value.trim();
-      if (!label) return;
-      const existing = state.objectives[index];
-      const id = existing ? existing.id : `obj-${Date.now()}-${index}`;
-      newObjectives.push({ id, label });
-    });
-    if (newObjectives.length === 0) {
-      showToast('Indiquez au moins un micro-objectif.');
-      return;
-    }
-    state.objectives = newObjectives;
-    ensureObjectiveStatus();
-    saveState();
-    renderObjectives();
-    showToast('Micro-objectifs enregistrés.');
-  });
-
-  refs.rewardForm.addEventListener('submit', event => {
-    event.preventDefault();
-    refs.rewardInputs.forEach(textarea => {
-      state.rewards[textarea.dataset.reward] = splitLines(textarea.value);
-    });
-    saveState();
-    renderRewards();
-    showToast('Récompenses publiées.');
-  });
-
-  refs.pinForm.addEventListener('submit', event => {
-    event.preventDefault();
-    const newPin = refs.pinInput.value.trim();
-    if (!/^[0-9]{4,6}$/.test(newPin)) {
-      showToast('Le code doit comporter 4 à 6 chiffres.');
-      return;
-    }
-    state.pin = newPin;
-    refs.pinInput.value = '';
-    saveState();
-    showToast('Code PIN mis à jour.');
-  });
-  if (refs.clearFocusBtn) {
-    refs.clearFocusBtn.addEventListener('click', () => {
-      state.focus = { skill: '', notes: '' };
-      refs.focusInput.value = '';
-      refs.focusNotes.value = '';
-      saveState();
-      renderFocusSummary();
-      showToast('Objectif hebdo effacé.');
-    });
+  if (refs.levelStatus) {
+    refs.levelStatus.textContent = state.currentLevel
+      ? `${state.currentLevel} – ${EMOTION_LEVELS[state.currentLevel]}`
+      : 'Choisis ton niveau pour continuer.';
   }
-}
-
-function setupLocking() {
-  setPanelLock('parent', true);
-  setPanelLock('bilan', true);
-
-  refs.parentUnlockForm.addEventListener('submit', event => {
-    event.preventDefault();
-    if (refs.parentPinInput.value.trim() === state.pin) {
-      setPanelLock('parent', false);
-      refs.parentPinInput.value = '';
-      showToast('Tour de contrôle ouverte.');
-    } else {
-      showToast('Code incorrect.');
+  const showPause = Number(state.currentLevel) >= 4;
+  if (refs.pauseCard) {
+    refs.pauseCard.hidden = !showPause;
+    if (showPause) {
+      refs.pauseCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
-  });
-
-  refs.bilanUnlockForm.addEventListener('submit', event => {
-    event.preventDefault();
-    if (refs.bilanPinInput.value.trim() === state.pin) {
-      setPanelLock('bilan', false);
-      refs.bilanPinInput.value = '';
-      showToast('Espace bilan déverrouillé.');
-    } else {
-      showToast('Code incorrect.');
-    }
-  });
-
-  refs.lockParentBtn.addEventListener('click', () => setPanelLock('parent', true));
-  refs.lockBilanBtn.addEventListener('click', () => setPanelLock('bilan', true));
-}
-
-function setupReviewForms() {
-  refs.childReviewForm.addEventListener('submit', event => {
-    event.preventDefault();
-    Object.entries(refs.childReviewFields).forEach(([key, field]) => {
-      state.reviews.child[key] = field.value.trim();
-    });
-    saveState();
-    showToast('Bilan enfant enregistré.');
-  });
-
-  refs.parentReviewForm.addEventListener('submit', event => {
-    event.preventDefault();
-    Object.entries(refs.parentReviewFields).forEach(([key, field]) => {
-      state.reviews.parent[key] = field.value.trim();
-    });
-    saveState();
-    showToast('Bilan parent enregistré.');
-  });
-}
-
-function setupExportImport() {
-  refs.exportJsonBtn.addEventListener('click', () => {
-    const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
-    downloadBlob(blob, `pilote-${new Date().toISOString()}.json`);
-  });
-
-  refs.exportCsvBtn.addEventListener('click', () => {
-    const rows = [['type', 'categorie', 'valeur', 'timestamp']];
-    state.emotionHistory.forEach(entry => {
-      rows.push(['emotion', EMOTION_LEVELS[entry.level], entry.level, entry.timestamp]);
-    });
-    state.pauseHistory.forEach(entry => {
-      rows.push(['pause', '', 'pause demandée', entry.timestamp]);
-    });
-    state.objectives.forEach(obj => {
-      rows.push(['objectif', obj.label, state.objectiveStatus[obj.id] ? 'coché' : 'en cours', '']);
-    });
-    ['immediate', 'planned', 'symbolic'].forEach(category => {
-      state.rewards[category].forEach(value => {
-        rows.push(['recompense', category, value, '']);
-      });
-    });
-    const csv = rows.map(row => row.map(safeCsvCell).join(',')).join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
-    downloadBlob(blob, `pilote-${new Date().toISOString()}.csv`);
-  });
-
-  refs.importFile.addEventListener('change', event => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      try {
-        const imported = JSON.parse(String(reader.result));
-        state = mergeState(DEFAULT_STATE, imported);
-        ensureObjectiveStatus();
-        saveState();
-        renderAll();
-        showToast('Import réussi.');
-      } catch (error) {
-        console.error(error);
-        showToast('Fichier invalide.');
-      }
-      event.target.value = '';
-    };
-    reader.readAsText(file);
-  });
-}
-
-function renderAll() {
-  updateWeekLabel();
-  renderBarometer();
-  renderStrategies();
-  renderObjectives();
-  renderFocusSummary();
-  renderTokens();
-  renderBadges();
-  renderRewards();
-  renderEmotionHistory();
-  populateParentForms();
-  populateReviewForms();
-}
-
-function updateWeekLabel() {
-  if (!refs.currentWeekLabel) return;
-  const today = new Date();
-  const monday = startOfWeek(today);
-  const sunday = new Date(monday);
-  sunday.setDate(monday.getDate() + 6);
-  const formatter = new Intl.DateTimeFormat('fr-FR', { day: '2-digit', month: 'short' });
-  refs.currentWeekLabel.textContent = `${formatter.format(monday)} – ${formatter.format(sunday)}`;
-}
-
-function renderBarometer() {
-  refs.barometerButtons.forEach(button => {
-    const level = Number(button.dataset.level);
-    button.classList.toggle('active', state.currentLevel === level);
-  });
-  if (state.currentLevel) {
-    refs.currentLevelLabel.textContent = `${state.currentLevel} – ${EMOTION_LEVELS[state.currentLevel]}`;
-  } else {
-    refs.currentLevelLabel.textContent = 'Pas encore choisi';
   }
-  refs.pauseButton.hidden = !state.currentLevel || state.currentLevel < 4;
+  renderTools(refs.toolList);
+  renderChildObjectives(refs.objectiveList);
+  renderTokenCount(refs.tokenCount);
+  renderBadges(refs.badgeList);
+  renderRewardOfDay(refs.rewardOfDay);
+  renderFocusSummary(refs.focusSummary);
 }
 
-function handleLevelSelection(level) {
+function handleLevelSelection(level, refs) {
   state.currentLevel = level;
   state.emotionHistory.push({ level, timestamp: new Date().toISOString() });
   if (state.emotionHistory.length > 30) {
     state.emotionHistory.shift();
   }
   saveState();
-  renderBarometer();
-  renderEmotionHistory();
-  renderBadges();
+  renderChildView(refs);
+  if (level >= 4) {
+    showToast('Pause conseillée, tu peux demander de l’aide.');
+  }
 }
 
-function renderStrategies() {
-  if (!refs.strategyList) return;
-  refs.strategyList.innerHTML = '';
-  const fragment = document.createDocumentFragment();
-  (state.strategies && state.strategies.length ? state.strategies : DEFAULT_STATE.strategies).forEach(text => {
-    const li = document.createElement('li');
-    li.textContent = text;
-    fragment.appendChild(li);
+function handlePauseRequest(refs) {
+  state.pauseHistory.push({ timestamp: new Date().toISOString() });
+  addTokens(1, 'Pause demandée');
+  saveState();
+  renderChildView(refs);
+  showToast('Pause enclenchée. Respire, tu gères !');
+}
+
+function renderTools(container) {
+  if (!container) return;
+  container.innerHTML = '';
+  const strategies = (state.strategies && state.strategies.length ? state.strategies : DEFAULT_STATE.strategies)
+    .slice(0, 3);
+  strategies.forEach(text => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'btn';
+    button.textContent = text;
+    container.appendChild(button);
   });
-  refs.strategyList.appendChild(fragment);
-
-  renderStrategyFields();
+  if (!strategies.length) {
+    const p = document.createElement('p');
+    p.className = 'small';
+    p.textContent = 'Le parent ajoutera ici les idées calmes.';
+    container.appendChild(p);
+  }
 }
 
-function renderRewards() {
-  if (!refs.rewardList) return;
-  refs.rewardList.innerHTML = '';
-  const categories = [
-    { id: 'immediate', title: 'Immédiates (0-15 min)' },
-    { id: 'planned', title: 'Programmées' },
-    { id: 'symbolic', title: 'Symboliques' },
-  ];
-  categories.forEach(category => {
-    const section = document.createElement('section');
-    const h4 = document.createElement('h4');
-    h4.textContent = category.title;
-    const list = document.createElement('ul');
-    const entries = state.rewards[category.id] || [];
-    if (!entries.length) {
-      const li = document.createElement('li');
-      li.textContent = 'À définir avec ton parent';
-      list.appendChild(li);
-    }
-    entries.forEach(item => {
-      const li = document.createElement('li');
-      li.textContent = item;
-      list.appendChild(li);
-    });
-    section.appendChild(h4);
-    section.appendChild(list);
-    refs.rewardList.appendChild(section);
-  });
-}
-
-function renderObjectives() {
-  if (!refs.objectiveList) return;
-  refs.objectiveList.innerHTML = '';
+function renderChildObjectives(list) {
+  if (!list) return;
+  list.innerHTML = '';
   state.objectives.forEach(obj => {
     const li = document.createElement('li');
     const label = document.createElement('label');
@@ -536,121 +244,243 @@ function renderObjectives() {
     if (checkbox.checked) {
       li.classList.add('completed');
     }
-    refs.objectiveList.appendChild(li);
+    list.appendChild(li);
   });
 }
 
-function renderFocusSummary() {
-  if (!refs.focusSummary) return;
-  if (state.focus.skill) {
-    const notes = state.focus.notes ? ` – ${state.focus.notes}` : '';
-    refs.focusSummary.textContent = `Objectif de la semaine : ${state.focus.skill}${notes}`;
-  } else {
-    refs.focusSummary.textContent = 'Ton parent ajoutera ici l’objectif hebdomadaire.';
+function renderTokenCount(el) {
+  if (el) {
+    el.textContent = String(state.tokens);
   }
 }
 
-function renderTokens() {
-  refs.tokenCount.textContent = String(state.tokens);
-}
-
-function renderBadges() {
+function renderBadges(container) {
+  if (!container) return;
   if (!state.badges) {
     state.badges = {};
   }
-  refs.badgeList.innerHTML = '';
-  const fragment = document.createDocumentFragment();
+  container.innerHTML = '';
   BADGE_RULES.forEach(rule => {
     const earned = rule.check(state);
     state.badges[rule.id] = earned;
     const li = document.createElement('li');
-    const title = document.createElement('span');
-    title.textContent = rule.label;
+    const label = document.createElement('span');
+    label.textContent = rule.label;
     const status = document.createElement('span');
     status.textContent = earned ? 'Gagné' : 'À venir';
-    status.className = earned ? 'badge-earned' : '';
-    li.append(title, status);
-    fragment.appendChild(li);
+    status.className = earned ? 'badge-earned' : 'tiny';
+    li.append(label, status);
+    container.appendChild(li);
   });
-  refs.badgeList.appendChild(fragment);
   saveState();
 }
 
-function renderEmotionHistory() {
-  refs.emotionHistory.innerHTML = '';
-  if (!state.emotionHistory.length) {
-    const li = document.createElement('li');
-    li.textContent = 'Aucune donnée pour le moment.';
-    refs.emotionHistory.appendChild(li);
-    return;
-  }
-  const fragment = document.createDocumentFragment();
-  [...state.emotionHistory].slice(-15).reverse().forEach(entry => {
-    const li = document.createElement('li');
-    const label = document.createElement('span');
-    label.textContent = `${entry.level} – ${EMOTION_LEVELS[entry.level]}`;
-    const time = document.createElement('span');
-    time.textContent = formatTime(entry.timestamp);
-    li.append(label, time);
-    fragment.appendChild(li);
-  });
-  refs.emotionHistory.appendChild(fragment);
+function renderRewardOfDay(el) {
+  if (!el) return;
+  const reward = state.rewards.immediate?.[0]
+    || state.rewards.planned?.[0]
+    || 'Ton parent choisira une récompense douce ici.';
+  el.textContent = reward;
 }
 
-function populateParentForms() {
-  refs.focusInput.value = state.focus.skill || '';
-  refs.focusNotes.value = state.focus.notes || '';
-  refs.routineFields.forEach(area => {
+function renderFocusSummary(el) {
+  if (!el) return;
+  if (state.focus.skill) {
+    const notes = state.focus.notes ? ` – ${state.focus.notes}` : '';
+    el.textContent = `Objectif de la semaine : ${state.focus.skill}${notes}`;
+  } else {
+    el.textContent = 'Ton parent ajoutera ici l’objectif du moment.';
+  }
+}
+
+function initParentPage() {
+  const refs = {
+    lockBanner: document.getElementById('parentLockBanner'),
+    content: document.getElementById('parentContent'),
+    unlockForm: document.getElementById('parentUnlockForm'),
+    pinInput: document.getElementById('parentPinInput'),
+    lockBtn: document.querySelector('[data-action="lock-parent"]'),
+    clearFocusBtn: document.querySelector('[data-action="clear-focus"]'),
+    focusForm: document.getElementById('focusForm'),
+    focusInput: document.getElementById('focusInput'),
+    focusNotes: document.getElementById('focusNotes'),
+    routineForm: document.getElementById('routineForm'),
+    routineFields: document.querySelectorAll('#routineForm textarea[data-routine]'),
+    triggerForm: document.getElementById('triggerForm'),
+    triggerInput: document.getElementById('triggerInput'),
+    strategyForm: document.getElementById('strategyForm'),
+    strategyFields: document.getElementById('strategyFields'),
+    objectiveForm: document.getElementById('objectiveForm'),
+    objectiveFields: document.getElementById('objectiveFields'),
+    rewardForm: document.getElementById('rewardForm'),
+    rewardInputs: document.querySelectorAll('#rewardForm textarea[data-reward]'),
+    scriptList: document.getElementById('scriptList'),
+    pinForm: document.getElementById('pinForm'),
+    pinInputNew: document.getElementById('pinInput'),
+  };
+
+  if (!refs.unlockForm) return;
+
+  setParentLocked(refs, true);
+  renderScripts(refs.scriptList);
+  renderStrategyFields(refs.strategyFields);
+  renderObjectiveFields(refs.objectiveFields);
+  populateParentForms(refs);
+
+  refs.unlockForm.addEventListener('submit', event => {
+    event.preventDefault();
+    if (refs.pinInput?.value.trim() === state.pin) {
+      setParentLocked(refs, false);
+      refs.pinInput.value = '';
+      showToast('Tour de contrôle ouverte.');
+    } else {
+      showToast('Code incorrect.');
+    }
+  });
+
+  refs.lockBtn?.addEventListener('click', () => setParentLocked(refs, true));
+
+  refs.clearFocusBtn?.addEventListener('click', () => {
+    state.focus = { skill: '', notes: '' };
+    populateParentForms(refs);
+    saveState();
+    showToast('Objectif hebdo effacé.');
+  });
+
+  refs.focusForm?.addEventListener('submit', event => {
+    event.preventDefault();
+    state.focus.skill = refs.focusInput?.value.trim() || '';
+    state.focus.notes = refs.focusNotes?.value.trim() || '';
+    saveState();
+    showToast('Objectif hebdo mis à jour.');
+  });
+
+  refs.routineForm?.addEventListener('submit', event => {
+    event.preventDefault();
+    refs.routineFields?.forEach(area => {
+      state.routines[area.dataset.routine] = area.value.trim();
+    });
+    saveState();
+    showToast('Routines sauvegardées.');
+  });
+
+  refs.triggerForm?.addEventListener('submit', event => {
+    event.preventDefault();
+    state.triggers = refs.triggerInput?.value.trim() || '';
+    saveState();
+    showToast('Déclencheurs mis à jour.');
+  });
+
+  refs.strategyForm?.addEventListener('submit', event => {
+    event.preventDefault();
+    const values = Array.from(refs.strategyFields?.querySelectorAll('input') || [])
+      .map(input => input.value.trim())
+      .filter(Boolean);
+    if (values.length < 3) {
+      showToast('Ajoutez au moins 3 idées stables.');
+      return;
+    }
+    state.strategies = values.slice(0, 5);
+    saveState();
+    showToast('Stratégies mises à jour.');
+  });
+
+  refs.objectiveForm?.addEventListener('submit', event => {
+    event.preventDefault();
+    const inputs = Array.from(refs.objectiveFields?.querySelectorAll('input') || []);
+    const newObjectives = [];
+    inputs.forEach((input, index) => {
+      const label = input.value.trim();
+      if (!label) return;
+      const existing = state.objectives[index];
+      const id = existing ? existing.id : `obj-${Date.now()}-${index}`;
+      newObjectives.push({ id, label });
+    });
+    if (!newObjectives.length) {
+      showToast('Indiquez au moins un micro-objectif.');
+      return;
+    }
+    state.objectives = newObjectives;
+    ensureObjectiveStatus();
+    saveState();
+    showToast('Micro-objectifs enregistrés.');
+  });
+
+  refs.rewardForm?.addEventListener('submit', event => {
+    event.preventDefault();
+    refs.rewardInputs?.forEach(textarea => {
+      state.rewards[textarea.dataset.reward] = splitLines(textarea.value);
+    });
+    saveState();
+    showToast('Récompenses publiées.');
+  });
+
+  refs.pinForm?.addEventListener('submit', event => {
+    event.preventDefault();
+    const newPin = refs.pinInputNew?.value.trim();
+    if (!/^[0-9]{4,6}$/.test(newPin)) {
+      showToast('Le code doit comporter 4 à 6 chiffres.');
+      return;
+    }
+    state.pin = newPin;
+    refs.pinInputNew.value = '';
+    saveState();
+    showToast('Code PIN mis à jour.');
+  });
+}
+
+function setParentLocked(refs, locked) {
+  if (refs.lockBanner) {
+    refs.lockBanner.style.display = locked ? 'block' : 'none';
+  }
+  if (refs.content) {
+    refs.content.classList.toggle('is-locked', locked);
+  }
+}
+
+function populateParentForms(refs) {
+  if (refs.focusInput) refs.focusInput.value = state.focus.skill || '';
+  if (refs.focusNotes) refs.focusNotes.value = state.focus.notes || '';
+  refs.routineFields?.forEach(area => {
     area.value = state.routines[area.dataset.routine] || '';
   });
-  refs.triggerInput.value = state.triggers || '';
-  refs.rewardInputs.forEach(textarea => {
+  if (refs.triggerInput) refs.triggerInput.value = state.triggers || '';
+  refs.rewardInputs?.forEach(textarea => {
     textarea.value = (state.rewards[textarea.dataset.reward] || []).join('\n');
   });
 }
 
-function populateReviewForms() {
-  Object.entries(refs.childReviewFields).forEach(([key, field]) => {
-    field.value = state.reviews.child[key] || '';
-  });
-  Object.entries(refs.parentReviewFields).forEach(([key, field]) => {
-    field.value = state.reviews.parent[key] || '';
-  });
-}
-
-function renderStrategyFields() {
-  if (!refs.strategyFields) return;
-  refs.strategyFields.innerHTML = '';
-  const total = 5;
-  for (let i = 0; i < total; i += 1) {
+function renderStrategyFields(container) {
+  if (!container) return;
+  container.innerHTML = '';
+  for (let i = 0; i < 5; i += 1) {
     const input = document.createElement('input');
     input.type = 'text';
     input.placeholder = `Idée ${i + 1}`;
     input.value = state.strategies[i] || '';
-    refs.strategyFields.appendChild(input);
+    container.appendChild(input);
   }
 }
 
-function renderObjectiveFields() {
-  if (!refs.objectiveFields) return;
-  refs.objectiveFields.innerHTML = '';
-  const total = 3;
-  for (let i = 0; i < total; i += 1) {
+function renderObjectiveFields(container) {
+  if (!container) return;
+  container.innerHTML = '';
+  for (let i = 0; i < 3; i += 1) {
     const input = document.createElement('input');
     input.type = 'text';
     input.placeholder = `Objectif ${i + 1}`;
     input.value = state.objectives[i]?.label || '';
-    refs.objectiveFields.appendChild(input);
+    container.appendChild(input);
   }
 }
 
-function renderScripts() {
-  if (!refs.scriptList) return;
-  refs.scriptList.innerHTML = '';
+function renderScripts(container) {
+  if (!container) return;
+  container.innerHTML = '';
   SCRIPT_LIBRARY.forEach(script => {
     const card = document.createElement('div');
     card.className = 'script-card';
-    const title = document.createElement('h4');
+    const title = document.createElement('h3');
     title.textContent = script.title;
     card.appendChild(title);
     script.lines.forEach(line => {
@@ -658,58 +488,165 @@ function renderScripts() {
       p.textContent = line;
       card.appendChild(p);
     });
-    refs.scriptList.appendChild(card);
+    container.appendChild(card);
   });
 }
 
-function setPanelLock(type, locked) {
-  panelLocks[type] = locked;
-  const banner = type === 'parent' ? refs.parentLockBanner : refs.bilanLockBanner;
-  const content = type === 'parent' ? refs.parentContent : refs.bilanContent;
-  if (banner) {
-    banner.style.display = locked ? 'block' : 'none';
-  }
-  if (content) {
-    content.classList.toggle('is-locked', locked);
-  }
-}
+function initBilanPage() {
+  const refs = {
+    lockBanner: document.getElementById('bilanLockBanner'),
+    content: document.getElementById('bilanContent'),
+    unlockForm: document.getElementById('bilanUnlockForm'),
+    pinInput: document.getElementById('bilanPinInput'),
+    lockBtn: document.querySelector('[data-action="lock-bilan"]'),
+    childReviewForm: document.getElementById('childReviewForm'),
+    parentReviewForm: document.getElementById('parentReviewForm'),
+    childReviewFields: {
+      helps: document.getElementById('childHelps'),
+      proud: document.getElementById('childProud'),
+      try: document.getElementById('childTry'),
+    },
+    parentReviewFields: {
+      risks: document.getElementById('parentRisks'),
+      strategies: document.getElementById('parentStrategies'),
+      structure: document.getElementById('parentStructure'),
+    },
+    emotionHistory: document.getElementById('emotionHistory'),
+    exportJsonBtn: document.getElementById('exportJsonBtn'),
+    exportCsvBtn: document.getElementById('exportCsvBtn'),
+    importFile: document.getElementById('importFile'),
+  };
 
-function ensureObjectiveStatus() {
-  if (!state.objectiveStatus) {
-    state.objectiveStatus = {};
-  }
-  state.objectives.forEach(obj => {
-    if (typeof state.objectiveStatus[obj.id] === 'undefined') {
-      state.objectiveStatus[obj.id] = false;
+  if (!refs.unlockForm) return;
+
+  setBilanLocked(refs, true);
+  populateReviewForms(refs);
+  renderEmotionHistory(refs.emotionHistory);
+
+  refs.unlockForm.addEventListener('submit', event => {
+    event.preventDefault();
+    if (refs.pinInput?.value.trim() === state.pin) {
+      setBilanLocked(refs, false);
+      refs.pinInput.value = '';
+      showToast('Espace bilan déverrouillé.');
+    } else {
+      showToast('Code incorrect.');
     }
   });
-  Object.keys(state.objectiveStatus).forEach(key => {
-    if (!state.objectives.find(obj => obj.id === key)) {
-      delete state.objectiveStatus[key];
-    }
+
+  refs.lockBtn?.addEventListener('click', () => setBilanLocked(refs, true));
+
+  refs.childReviewForm?.addEventListener('submit', event => {
+    event.preventDefault();
+    Object.entries(refs.childReviewFields).forEach(([key, field]) => {
+      state.reviews.child[key] = field.value.trim();
+    });
+    saveState();
+    showToast('Bilan enfant enregistré.');
+  });
+
+  refs.parentReviewForm?.addEventListener('submit', event => {
+    event.preventDefault();
+    Object.entries(refs.parentReviewFields).forEach(([key, field]) => {
+      state.reviews.parent[key] = field.value.trim();
+    });
+    saveState();
+    showToast('Bilan parent enregistré.');
+  });
+
+  refs.exportJsonBtn?.addEventListener('click', () => {
+    const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+    downloadBlob(blob, `pilote-${new Date().toISOString()}.json`);
+  });
+
+  refs.exportCsvBtn?.addEventListener('click', () => {
+    const rows = [['type', 'categorie', 'valeur', 'timestamp']];
+    state.emotionHistory.forEach(entry => {
+      rows.push(['emotion', EMOTION_LEVELS[entry.level], entry.level, entry.timestamp]);
+    });
+    state.pauseHistory.forEach(entry => {
+      rows.push(['pause', '', 'pause demandée', entry.timestamp]);
+    });
+    state.objectives.forEach(obj => {
+      rows.push(['objectif', obj.label, state.objectiveStatus[obj.id] ? 'coché' : 'en cours', '']);
+    });
+    ['immediate', 'planned', 'symbolic'].forEach(category => {
+      (state.rewards[category] || []).forEach(value => {
+        rows.push(['recompense', category, value, '']);
+      });
+    });
+    const csv = rows.map(row => row.map(safeCsvCell).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    downloadBlob(blob, `pilote-${new Date().toISOString()}.csv`);
+  });
+
+  refs.importFile?.addEventListener('change', event => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const imported = JSON.parse(String(reader.result));
+        state = mergeState(DEFAULT_STATE, imported);
+        ensureObjectiveStatus();
+        saveState();
+        populateReviewForms(refs);
+        renderEmotionHistory(refs.emotionHistory);
+        showToast('Import réussi.');
+      } catch (error) {
+        console.error(error);
+        showToast('Fichier invalide.');
+      }
+      event.target.value = '';
+    };
+    reader.readAsText(file);
   });
 }
 
-function handleToastVisibility(show) {
-  if (!refs.toast) return;
-  refs.toast.classList.toggle('visible', show);
+function setBilanLocked(refs, locked) {
+  if (refs.lockBanner) {
+    refs.lockBanner.style.display = locked ? 'block' : 'none';
+  }
+  if (refs.content) {
+    refs.content.classList.toggle('is-locked', locked);
+  }
 }
 
-function showToast(message) {
-  if (!refs.toast) return;
-  refs.toast.textContent = message;
-  handleToastVisibility(true);
-  clearTimeout(showToast.timeout);
-  showToast.timeout = setTimeout(() => handleToastVisibility(false), 3000);
+function populateReviewForms(refs) {
+  Object.entries(refs.childReviewFields || {}).forEach(([key, field]) => {
+    if (field) field.value = state.reviews.child[key] || '';
+  });
+  Object.entries(refs.parentReviewFields || {}).forEach(([key, field]) => {
+    if (field) field.value = state.reviews.parent[key] || '';
+  });
+}
+
+function renderEmotionHistory(list) {
+  if (!list) return;
+  list.innerHTML = '';
+  if (!state.emotionHistory.length) {
+    const li = document.createElement('li');
+    li.textContent = 'Aucune donnée pour le moment.';
+    list.appendChild(li);
+    return;
+  }
+  [...state.emotionHistory].slice(-15).reverse().forEach(entry => {
+    const li = document.createElement('li');
+    const label = document.createElement('span');
+    label.textContent = `${entry.level} – ${EMOTION_LEVELS[entry.level]}`;
+    const time = document.createElement('span');
+    time.textContent = formatTime(entry.timestamp);
+    li.append(label, time);
+    list.appendChild(li);
+  });
 }
 
 function addTokens(amount, reason) {
   state.tokens += amount;
-  renderTokens();
-  saveState();
   if (reason) {
     showToast(`${reason} (+${amount} jeton)`);
   }
+  saveState();
 }
 
 function saveState() {
@@ -734,7 +671,7 @@ function mergeState(base, override) {
   if (!override || typeof override !== 'object') {
     return deepClone(base);
   }
-  const result = { ...base };
+  const result = Array.isArray(base) ? [] : { ...base };
   Object.keys(base).forEach(key => {
     if (Array.isArray(base[key])) {
       result[key] = Array.isArray(override[key]) ? override[key] : base[key];
@@ -791,11 +728,27 @@ function formatTime(timestamp) {
   }).format(date);
 }
 
-function startOfWeek(date) {
-  const cloned = new Date(date);
-  const day = cloned.getDay();
-  const diff = cloned.getDate() - day + (day === 0 ? -6 : 1);
-  cloned.setDate(diff);
-  cloned.setHours(0, 0, 0, 0);
-  return cloned;
+function ensureObjectiveStatus() {
+  if (!state.objectiveStatus) {
+    state.objectiveStatus = {};
+  }
+  state.objectives.forEach(obj => {
+    if (typeof state.objectiveStatus[obj.id] === 'undefined') {
+      state.objectiveStatus[obj.id] = false;
+    }
+  });
+  Object.keys(state.objectiveStatus).forEach(key => {
+    if (!state.objectives.find(obj => obj.id === key)) {
+      delete state.objectiveStatus[key];
+    }
+  });
+}
+
+function showToast(message) {
+  const toast = document.getElementById('toast');
+  if (!toast) return;
+  toast.textContent = message;
+  toast.classList.add('visible');
+  clearTimeout(showToast.timeout);
+  showToast.timeout = setTimeout(() => toast.classList.remove('visible'), 3000);
 }

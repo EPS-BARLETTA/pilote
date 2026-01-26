@@ -1,1 +1,110 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PILOTE – Cockpit enfant</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body data-page="child">
+  <main class="container child">
+    <section class="card cockpit-hero">
+      <p class="eyebrow">Mon cockpit</p>
+      <h1>Respire, tu es en zone protégée</h1>
+      <p class="small">On observe ce qui se passe à l’intérieur et on demande de l’aide avant que ce soit trop.</p>
+    </section>
 
+    <section class="card" aria-labelledby="meterTitle">
+      <div class="card-head">
+        <h2 id="meterTitle">Comment je me sens ?</h2>
+        <p class="small" id="levelStatus">Choisis ton niveau pour continuer.</p>
+      </div>
+      <div class="meter" role="group" aria-label="Baromètre des émotions">
+        <button type="button" data-level="1">
+          <span aria-hidden="true">😌</span>
+          <strong>1</strong>
+          <span class="tiny">Calme</span>
+        </button>
+        <button type="button" data-level="2">
+          <span aria-hidden="true">🙂</span>
+          <strong>2</strong>
+          <span class="tiny">OK</span>
+        </button>
+        <button type="button" data-level="3">
+          <span aria-hidden="true">😐</span>
+          <strong>3</strong>
+          <span class="tiny">Chargé</span>
+        </button>
+        <button type="button" data-level="4">
+          <span aria-hidden="true">😣</span>
+          <strong>4</strong>
+          <span class="tiny">Besoin d’aide</span>
+        </button>
+        <button type="button" data-level="5">
+          <span aria-hidden="true">😡</span>
+          <strong>5</strong>
+          <span class="tiny">Trop plein</span>
+        </button>
+      </div>
+    </section>
+
+    <section class="card pause-card" id="pauseCard" hidden>
+      <div>
+        <h2>Pause maintenant</h2>
+        <p class="small">Tu gagnes un jeton chaque fois que tu demandes une pause avant le débordement.</p>
+      </div>
+      <button class="btn btn-primary" id="pauseButton" type="button">🛑 Je fais une pause</button>
+    </section>
+
+    <section class="card" id="toolCard">
+      <div class="card-head">
+        <h2>Mes 3 outils</h2>
+        <p class="small">Choisis celui qui t’aide le plus maintenant.</p>
+      </div>
+      <div class="tools" id="toolList"></div>
+    </section>
+
+    <button class="btn subtle" id="moreToggle" type="button">Mon carnet</button>
+
+    <section class="more-panel" id="morePanel" hidden>
+      <article class="card">
+        <div class="card-head">
+          <h2>Objectifs du moment</h2>
+          <button class="btn ghost" id="resetObjectivesBtn" type="button">Réinitialiser</button>
+        </div>
+        <p class="small" id="focusSummary"></p>
+        <ul id="objectiveList" class="objective-list"></ul>
+      </article>
+
+      <article class="card">
+        <div class="card-head">
+          <h2>Jetons &amp; badges</h2>
+          <p class="token-count" id="tokenCount">0</p>
+        </div>
+        <ul id="badgeList" class="badge-list"></ul>
+      </article>
+
+      <article class="card">
+        <h2>Petites ancres</h2>
+        <ul class="anchor-list">
+          <li>👐 Frotte doucement tes mains</li>
+          <li>👣 Pose tes pieds bien à plat</li>
+          <li>👂 Écoute trois sons autour de toi</li>
+          <li>👃 Choisis une odeur rassurante</li>
+        </ul>
+      </article>
+
+      <article class="card">
+        <div class="card-head">
+          <h2>Récompense du jour</h2>
+          <span class="small">Validée par ton parent</span>
+        </div>
+        <p id="rewardOfDay" class="reward-text"></p>
+      </article>
+    </section>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="app.js" defer></script>
+</body>
+</html>

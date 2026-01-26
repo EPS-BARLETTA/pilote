@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PILOTE – Bilan</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body data-page="bilan">
+  <main class="container dashboard">
+    <header class="page-hero">
+      <p class="eyebrow">Espace bilan</p>
+      <h1>Support de dialogue</h1>
+      <p class="small">Comprendre, ajuster, dialoguer chaque semaine.</p>
+      <button class="btn ghost" data-action="lock-bilan" type="button">Verrouiller</button>
+    </header>
+
+    <section class="card lock-banner" id="bilanLockBanner">
+      <p>Accès protégé : code PIN requis.</p>
+      <form id="bilanUnlockForm" class="pin-form">
+        <label for="bilanPinInput">Code PIN</label>
+        <input id="bilanPinInput" type="password" inputmode="numeric" maxlength="6" required />
+        <button type="submit">Déverrouiller</button>
+      </form>
+    </section>
+
+    <div class="grid lockable is-locked" id="bilanContent">
+      <article class="card">
+        <h2>Bilan enfant</h2>
+        <form id="childReviewForm" class="stack-form">
+          <label for="childHelps">Ce qui m’aide le plus</label>
+          <textarea id="childHelps" rows="3"></textarea>
+          <label for="childProud">Ce dont je suis fier</label>
+          <textarea id="childProud" rows="3"></textarea>
+          <label for="childTry">Ce que je veux essayer</label>
+          <textarea id="childTry" rows="3"></textarea>
+          <button type="submit">Enregistrer</button>
+        </form>
+      </article>
+
+      <article class="card">
+        <h2>Bilan parent</h2>
+        <form id="parentReviewForm" class="stack-form">
+          <label for="parentRisks">Moments à risque</label>
+          <textarea id="parentRisks" rows="3"></textarea>
+          <label for="parentStrategies">Stratégies efficaces</label>
+          <textarea id="parentStrategies" rows="3"></textarea>
+          <label for="parentStructure">Ajustements prévus</label>
+          <textarea id="parentStructure" rows="3"></textarea>
+          <button type="submit">Enregistrer</button>
+        </form>
+      </article>
+
+      <article class="card">
+        <h2>Historique des émotions</h2>
+        <ul id="emotionHistory" class="history-list"></ul>
+      </article>
+
+      <article class="card span-2">
+        <h2>Export / Import</h2>
+        <div class="export-actions">
+          <button id="exportJsonBtn" type="button">Exporter en JSON</button>
+          <button id="exportCsvBtn" type="button">Exporter en CSV</button>
+          <label class="import-label" for="importFile">Importer des données</label>
+          <input id="importFile" type="file" accept="application/json" />
+        </div>
+        <p class="micro-copy">Les données restent dans le navigateur. Exportez pour partager avec un pro ou sauvegarder.</p>
+      </article>
+    </div>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="app.js" defer></script>
+</body>
+</html>
