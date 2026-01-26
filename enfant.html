@@ -8,15 +8,24 @@
 </head>
 <body data-page="child">
   <main class="container child">
-    <section class="card cockpit-hero">
-      <p class="eyebrow">Mon cockpit</p>
-      <h1>Respire, tu es en zone protégée</h1>
-      <p class="small">On observe ce qui se passe à l’intérieur et on demande de l’aide avant que ce soit trop.</p>
-    </section>
+    <header class="child-hero">
+      <div class="copilot-avatar" aria-hidden="true">🛟</div>
+      <div>
+        <p class="eyebrow">Mon cockpit</p>
+        <h1>Tu es en sécurité ici.</h1>
+        <p class="small">Choisis ton niveau, et je t’aide à redescendre.</p>
+      </div>
+    </header>
+
+    <nav class="child-nav" aria-label="Navigation">
+      <a href="index.html" class="nav-pill">Accueil</a>
+      <a href="parent.html" class="nav-pill">Tour de contrôle</a>
+      <a href="bilan.html" class="nav-pill">Bilan</a>
+    </nav>
 
     <section class="card" aria-labelledby="meterTitle">
       <div class="card-head">
-        <h2 id="meterTitle">Comment je me sens ?</h2>
+        <h2 id="meterTitle">Où est ton moteur ?</h2>
         <p class="small" id="levelStatus">Choisis ton niveau pour continuer.</p>
       </div>
       <div class="meter" role="group" aria-label="Baromètre des émotions">
@@ -50,26 +59,26 @@
 
     <section class="card pause-card" id="pauseCard" hidden>
       <div>
-        <h2>Pause maintenant</h2>
-        <p class="small">Tu gagnes un jeton chaque fois que tu demandes une pause avant le débordement.</p>
+        <h2>Tu veux que je t’aide ?</h2>
+        <p class="small">Demander une pause, c’est une compétence.</p>
       </div>
-      <button class="btn btn-primary" id="pauseButton" type="button">🛑 Je fais une pause</button>
+      <button class="btn btn-primary big-pause" id="pauseButton" type="button">🛑 Je me mets en pause</button>
     </section>
 
-    <section class="card" id="toolCard">
+    <section class="card tool-card" id="toolCard" hidden>
       <div class="card-head">
-        <h2>Mes 3 outils</h2>
-        <p class="small">Choisis celui qui t’aide le plus maintenant.</p>
+        <h2>Choisis un frein :</h2>
+        <p class="small">Celui qui t’aide le plus maintenant.</p>
       </div>
       <div class="tools" id="toolList"></div>
     </section>
 
-    <button class="btn subtle" id="moreToggle" type="button">Mon carnet</button>
+    <button class="btn subtle" id="moreToggle" type="button" aria-expanded="false">Mon carnet</button>
 
     <section class="more-panel" id="morePanel" hidden>
       <article class="card">
         <div class="card-head">
-          <h2>Objectifs du moment</h2>
+          <h2>Mon objectif du moment</h2>
           <button class="btn ghost" id="resetObjectivesBtn" type="button">Réinitialiser</button>
         </div>
         <p class="small" id="focusSummary"></p>
@@ -78,7 +87,7 @@
 
       <article class="card">
         <div class="card-head">
-          <h2>Jetons &amp; badges</h2>
+          <h2>Mes jetons</h2>
           <p class="token-count" id="tokenCount">0</p>
         </div>
         <ul id="badgeList" class="badge-list"></ul>
@@ -96,8 +105,8 @@
 
       <article class="card">
         <div class="card-head">
-          <h2>Récompense du jour</h2>
-          <span class="small">Validée par ton parent</span>
+          <h2>Ma récompense validée</h2>
+          <span class="small">Confirmée par ton parent</span>
         </div>
         <p id="rewardOfDay" class="reward-text"></p>
       </article>

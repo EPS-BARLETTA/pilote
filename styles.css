@@ -22,6 +22,10 @@ body {
   line-height: 1.35;
 }
 
+body[data-page="child"] {
+  background: #fdf7f1;
+}
+
 img {
   max-width: 100%;
   display: block;
@@ -164,8 +168,48 @@ body[data-page="child"] .container {
   max-width: 520px;
 }
 
-.cockpit-hero {
-  text-align: left;
+.child-hero {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  background: #fffaf1;
+  border: 1px solid rgba(255, 170, 110, 0.4);
+  border-radius: 18px;
+  padding: 16px;
+  margin-bottom: 12px;
+}
+
+.copilot-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  background: #ffd9b5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+}
+
+.child-nav {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.nav-pill {
+  flex: 1;
+  text-align: center;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 10px;
+  background: #fff;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.nav-pill:hover {
+  background: #fffdf7;
 }
 
 .meter {
@@ -201,6 +245,10 @@ body[data-page="child"] .container {
   color: var(--text);
 }
 
+.big-pause {
+  font-size: 1.1rem;
+}
+
 .pause-card {
   display: flex;
   flex-direction: column;
@@ -216,6 +264,10 @@ body[data-page="child"] .container {
 .tools .btn {
   text-align: left;
   width: 100%;
+}
+
+.tool-card {
+  background: #f2f7ff;
 }
 
 .more-panel {

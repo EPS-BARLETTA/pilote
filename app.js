@@ -1,9 +1,9 @@
 const STORAGE_KEY = 'pilote-state-v1';
 const EMOTION_LEVELS = {
   1: 'Calme',
-  2: 'Bien',
+  2: 'OK',
   3: 'Chargé',
-  4: 'Très chargé',
+  4: 'Besoin d’aide',
   5: 'Trop plein',
 };
 
@@ -93,9 +93,9 @@ const DEFAULT_STATE = {
   objectiveCompletions: 0,
   primaryObjectiveId: OBJECTIVE_LIBRARY[0].id,
   strategies: [
-    'Respirer 5 fois comme une vague',
-    'Appuyer fort ses mains sur la table',
-    'Coin calme avec coussin',
+    '🌬️ Respire avec moi (30s)',
+    '🤲 Appuie fort (20s)',
+    '🪑 Coin calme (2 min)',
     'Boire un verre d’eau en conscience',
     'Mettre le casque silence',
   ],
@@ -142,6 +142,7 @@ function initChildPage() {
     levelStatus: document.getElementById('levelStatus'),
     pauseCard: document.getElementById('pauseCard'),
     pauseButton: document.getElementById('pauseButton'),
+    toolCard: document.getElementById('toolCard'),
     toolList: document.getElementById('toolList'),
     objectiveList: document.getElementById('objectiveList'),
     resetObjectivesBtn: document.getElementById('resetObjectivesBtn'),
@@ -190,6 +191,7 @@ function initChildPage() {
       refs.morePanel.hidden = !hidden;
     }
     refs.moreToggle.textContent = hidden ? 'Fermer mon carnet' : 'Mon carnet';
+    refs.moreToggle.setAttribute('aria-expanded', String(hidden));
   });
 }
 
@@ -209,6 +211,9 @@ function renderChildView(refs) {
     if (showPause) {
       refs.pauseCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
+  }
+  if (refs.toolCard) {
+    refs.toolCard.hidden = !showPause;
   }
   renderTools(refs.toolList);
   renderChildObjectives(refs.objectiveList);
@@ -309,7 +314,8 @@ function renderBadges(container) {
 
 function renderRewardOfDay(el) {
   if (!el) return;
-  const reward = state.rewards.immediate?.[0]
+  const reward = state.rewardNext
+    || state.rewards.immediate?.[0]
     || state.rewards.planned?.[0]
     || 'Ton parent choisira une récompense douce ici.';
   el.textContent = reward;
