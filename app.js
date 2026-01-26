@@ -30,36 +30,68 @@ const BADGE_RULES = [
 
 const SCRIPT_LIBRARY = [
   {
-    title: 'Prévention',
+    title: 'Avant (prévention)',
     lines: [
-      '« On teste ensemble cette routine, tu me dis ce qui t’aide. »',
-      '« Si tu sens que ça monte, on appuie sur pause tous les deux. »',
-      '« Tu as le droit d’être comme tu es, on va trouver la bonne manette. »',
+      '« Dans 5 minutes, on change. Je te le rappelle. »',
+      '« Tu préfères A ou B ? »',
+      '« On commence par le plus facile. »',
     ],
   },
   {
-    title: 'Pendant la montée',
+    title: 'Pendant (tension)',
     lines: [
-      '« Je vois que ça déborde, je suis là avec toi. »',
-      '« On met la situation en pause, ton corps est prioritaire. »',
-      '« Respire avec moi, on libère la pression doucement. »',
+      '« Je vois que ça monte. Pause. »',
+      '« On parle après, pas maintenant. »',
+      '« Je suis là. »',
     ],
   },
   {
-    title: 'Après la crise',
+    title: 'Après (apprentissage)',
     lines: [
-      '« Merci d’avoir réparé, ça montre ta force d’essayer. »',
-      '« Qu’est-ce qui t’aiderait la prochaine fois ? On cherche ensemble. »',
-      '« Ce n’est pas un échec, c’est une info pour mieux te protéger. »',
+      '« Qu’est-ce qui t’a aidé ? »',
+      '« On garde cette idée. »',
+      '« On essaiera plus tôt la prochaine fois. »',
     ],
   },
 ];
 
+const OBJECTIVE_LIBRARY = [
+  { id: 'reg-pause', label: 'Demander une pause quand ça devient trop dur' },
+  { id: 'reg-level', label: 'Repérer quand mon moteur est à 3' },
+  { id: 'reg-tool', label: 'Utiliser un outil pour redescendre' },
+  { id: 'reg-help', label: 'Accepter l’aide d’un adulte' },
+  { id: 'reg-return', label: 'Revenir après une pause' },
+  { id: 'eng-start', label: 'Commencer une tâche sans repousser' },
+  { id: 'eng-step', label: 'Faire le premier petit pas' },
+  { id: 'eng-ask', label: 'Demander de l’aide au lieu d’abandonner' },
+  { id: 'rel-say', label: 'Dire quand quelque chose m’énerve' },
+  { id: 'rel-repair', label: 'Réparer après un débordement' },
+  { id: 'rel-listen', label: 'Écouter une consigne courte' },
+  { id: 'rel-try', label: 'Essayer une autre solution quand ça ne marche pas' },
+];
+
+const CRISIS_PHRASES = [
+  '« Je vois que c’est dur pour toi. On fait une pause. Je suis là. »',
+  '« Ton moteur est trop chargé. On fait une pause. »',
+  '« Je t’aide. On respire d’abord. »',
+];
+
+const TRIGGER_OPTIONS = [
+  { id: 'noise', label: 'Bruit' },
+  { id: 'transition', label: 'Transitions' },
+  { id: 'fatigue', label: 'Fatigue' },
+  { id: 'frustration', label: 'Frustration / tâche difficile' },
+  { id: 'crowd', label: 'Beaucoup de monde' },
+  { id: 'hunger', label: 'Faim' },
+];
+
 const DEFAULT_STATE = {
   pin: '1234',
+  pinCustom: false,
   currentLevel: null,
   tokens: 0,
   objectiveCompletions: 0,
+  primaryObjectiveId: OBJECTIVE_LIBRARY[0].id,
   strategies: [
     'Respirer 5 fois comme une vague',
     'Appuyer fort ses mains sur la table',
@@ -67,11 +99,7 @@ const DEFAULT_STATE = {
     'Boire un verre d’eau en conscience',
     'Mettre le casque silence',
   ],
-  objectives: [
-    { id: 'obj-1', label: 'Demander une pause' },
-    { id: 'obj-2', label: 'Commencer doucement une tâche' },
-    { id: 'obj-3', label: 'Réparer après un débordement' },
-  ],
+  objectives: OBJECTIVE_LIBRARY.slice(0, 3).map(obj => ({ id: obj.id, label: obj.label })),
   objectiveStatus: {},
   rewards: {
     immediate: ['Moment câlin', 'Puzzle rapide', 'Jeu coopératif de 10 min'],
@@ -81,16 +109,20 @@ const DEFAULT_STATE = {
   focus: { skill: '', notes: '' },
   routines: { morning: '', homework: '', evening: '' },
   triggers: '',
+  triggerSelections: [],
+  triggerNotes: '',
   reviews: {
     child: { helps: '', proud: '', try: '' },
     parent: { risks: '', strategies: '', structure: '' },
   },
+  rewardNext: '',
   emotionHistory: [],
   pauseHistory: [],
   badges: {},
 };
 
 let state = loadState();
+let crisisPhraseIndex = 0;
 
 document.addEventListener('DOMContentLoaded', () => {
   ensureObjectiveStatus();
@@ -285,12 +317,17 @@ function renderRewardOfDay(el) {
 
 function renderFocusSummary(el) {
   if (!el) return;
-  if (state.focus.skill) {
-    const notes = state.focus.notes ? ` – ${state.focus.notes}` : '';
-    el.textContent = `Objectif de la semaine : ${state.focus.skill}${notes}`;
-  } else {
-    el.textContent = 'Ton parent ajoutera ici l’objectif du moment.';
+  const primary = getPrimaryObjective();
+  if (primary) {
+    el.textContent = `Objectif principal : ${primary.label}`;
+    return;
   }
+  if (state.focus?.skill) {
+    const notes = state.focus.notes ? ` – ${state.focus.notes}` : '';
+    el.textContent = `Objectif du moment : ${state.focus.skill}${notes}`;
+    return;
+  }
+  el.textContent = 'Ton parent ajoutera ici l’objectif du moment.';
 }
 
 function initParentPage() {
@@ -299,21 +336,22 @@ function initParentPage() {
     content: document.getElementById('parentContent'),
     unlockForm: document.getElementById('parentUnlockForm'),
     pinInput: document.getElementById('parentPinInput'),
+    pinReminder: document.getElementById('pinReminder'),
     lockBtn: document.querySelector('[data-action="lock-parent"]'),
-    clearFocusBtn: document.querySelector('[data-action="clear-focus"]'),
-    focusForm: document.getElementById('focusForm'),
-    focusInput: document.getElementById('focusInput'),
-    focusNotes: document.getElementById('focusNotes'),
+    crisisPhrase: document.getElementById('crisisPhrase'),
+    crisisPhraseBtn: document.getElementById('crisisPhraseBtn'),
+    objectiveChoices: document.getElementById('objectiveChoices'),
+    primaryObjectiveBadge: document.getElementById('primaryObjectiveBadge'),
     routineForm: document.getElementById('routineForm'),
     routineFields: document.querySelectorAll('#routineForm textarea[data-routine]'),
     triggerForm: document.getElementById('triggerForm'),
-    triggerInput: document.getElementById('triggerInput'),
+    triggerOptions: document.getElementById('triggerOptions'),
+    triggerOtherInput: document.getElementById('triggerOtherInput'),
     strategyForm: document.getElementById('strategyForm'),
     strategyFields: document.getElementById('strategyFields'),
-    objectiveForm: document.getElementById('objectiveForm'),
-    objectiveFields: document.getElementById('objectiveFields'),
     rewardForm: document.getElementById('rewardForm'),
     rewardInputs: document.querySelectorAll('#rewardForm textarea[data-reward]'),
+    plannedNextInput: document.getElementById('plannedNextInput'),
     scriptList: document.getElementById('scriptList'),
     pinForm: document.getElementById('pinForm'),
     pinInputNew: document.getElementById('pinInput'),
@@ -322,17 +360,23 @@ function initParentPage() {
   if (!refs.unlockForm) return;
 
   setParentLocked(refs, true);
+  renderCrisisPhrase(refs);
   renderScripts(refs.scriptList);
   renderStrategyFields(refs.strategyFields);
-  renderObjectiveFields(refs.objectiveFields);
+  renderObjectiveChoices(refs);
+  renderTriggerOptions(refs);
   populateParentForms(refs);
+
+  if (refs.pinReminder) {
+    refs.pinReminder.style.display = state.pinCustom ? 'none' : 'block';
+  }
 
   refs.unlockForm.addEventListener('submit', event => {
     event.preventDefault();
     if (refs.pinInput?.value.trim() === state.pin) {
       setParentLocked(refs, false);
       refs.pinInput.value = '';
-      showToast('Tour de contrôle ouverte.');
+      showToast('Tour de contrôle ouverte pour cette session.');
     } else {
       showToast('Code incorrect.');
     }
@@ -340,19 +384,22 @@ function initParentPage() {
 
   refs.lockBtn?.addEventListener('click', () => setParentLocked(refs, true));
 
-  refs.clearFocusBtn?.addEventListener('click', () => {
-    state.focus = { skill: '', notes: '' };
-    populateParentForms(refs);
-    saveState();
-    showToast('Objectif hebdo effacé.');
+  refs.crisisPhraseBtn?.addEventListener('click', () => {
+    cycleCrisisPhrase(refs);
   });
 
-  refs.focusForm?.addEventListener('submit', event => {
-    event.preventDefault();
-    state.focus.skill = refs.focusInput?.value.trim() || '';
-    state.focus.notes = refs.focusNotes?.value.trim() || '';
-    saveState();
-    showToast('Objectif hebdo mis à jour.');
+  refs.objectiveChoices?.addEventListener('change', event => {
+    const target = event.target;
+    if (target.matches('input[type="checkbox"][data-objective]')) {
+      handleObjectiveToggle(target, refs);
+    }
+    if (target.matches('input[type="radio"][name="primaryObjective"]')) {
+      state.primaryObjectiveId = target.value;
+      ensurePrimaryObjective();
+      saveState();
+      renderObjectiveChoices(refs);
+      showToast('Objectif principal défini.');
+    }
   });
 
   refs.routineForm?.addEventListener('submit', event => {
@@ -366,7 +413,12 @@ function initParentPage() {
 
   refs.triggerForm?.addEventListener('submit', event => {
     event.preventDefault();
-    state.triggers = refs.triggerInput?.value.trim() || '';
+    const selections = Array.from(
+      refs.triggerOptions?.querySelectorAll('input[type="checkbox"]:checked') || []
+    );
+    state.triggerSelections = selections.map(input => input.value);
+    state.triggerNotes = refs.triggerOtherInput?.value.trim() || '';
+    state.triggers = state.triggerNotes;
     saveState();
     showToast('Déclencheurs mis à jour.');
   });
@@ -385,32 +437,12 @@ function initParentPage() {
     showToast('Stratégies mises à jour.');
   });
 
-  refs.objectiveForm?.addEventListener('submit', event => {
-    event.preventDefault();
-    const inputs = Array.from(refs.objectiveFields?.querySelectorAll('input') || []);
-    const newObjectives = [];
-    inputs.forEach((input, index) => {
-      const label = input.value.trim();
-      if (!label) return;
-      const existing = state.objectives[index];
-      const id = existing ? existing.id : `obj-${Date.now()}-${index}`;
-      newObjectives.push({ id, label });
-    });
-    if (!newObjectives.length) {
-      showToast('Indiquez au moins un micro-objectif.');
-      return;
-    }
-    state.objectives = newObjectives;
-    ensureObjectiveStatus();
-    saveState();
-    showToast('Micro-objectifs enregistrés.');
-  });
-
   refs.rewardForm?.addEventListener('submit', event => {
     event.preventDefault();
     refs.rewardInputs?.forEach(textarea => {
       state.rewards[textarea.dataset.reward] = splitLines(textarea.value);
     });
+    state.rewardNext = refs.plannedNextInput?.value.trim() || '';
     saveState();
     showToast('Récompenses publiées.');
   });
@@ -423,9 +455,13 @@ function initParentPage() {
       return;
     }
     state.pin = newPin;
+    state.pinCustom = true;
     refs.pinInputNew.value = '';
     saveState();
     showToast('Code PIN mis à jour.');
+    if (refs.pinReminder) {
+      refs.pinReminder.style.display = 'none';
+    }
   });
 }
 
@@ -439,14 +475,109 @@ function setParentLocked(refs, locked) {
 }
 
 function populateParentForms(refs) {
-  if (refs.focusInput) refs.focusInput.value = state.focus.skill || '';
-  if (refs.focusNotes) refs.focusNotes.value = state.focus.notes || '';
   refs.routineFields?.forEach(area => {
     area.value = state.routines[area.dataset.routine] || '';
   });
-  if (refs.triggerInput) refs.triggerInput.value = state.triggers || '';
+  if (refs.triggerOtherInput) {
+    refs.triggerOtherInput.value = state.triggerNotes || state.triggers || '';
+  }
+  Array.from(refs.triggerOptions?.querySelectorAll('input[type="checkbox"]') || []).forEach(
+    checkbox => {
+      checkbox.checked = state.triggerSelections?.includes(checkbox.value) || false;
+    }
+  );
   refs.rewardInputs?.forEach(textarea => {
     textarea.value = (state.rewards[textarea.dataset.reward] || []).join('\n');
+  });
+  if (refs.plannedNextInput) {
+    refs.plannedNextInput.value = state.rewardNext || '';
+  }
+}
+
+function renderCrisisPhrase(refs) {
+  if (!refs?.crisisPhrase) return;
+  refs.crisisPhrase.textContent = CRISIS_PHRASES[crisisPhraseIndex];
+}
+
+function cycleCrisisPhrase(refs) {
+  crisisPhraseIndex = (crisisPhraseIndex + 1) % CRISIS_PHRASES.length;
+  renderCrisisPhrase(refs);
+}
+
+function renderObjectiveChoices(refs) {
+  if (!refs?.objectiveChoices) return;
+  refs.objectiveChoices.innerHTML = '';
+  const selectedIds = state.objectives.map(obj => obj.id);
+  OBJECTIVE_LIBRARY.forEach(obj => {
+    const wrapper = document.createElement('label');
+    wrapper.className = 'objective-choice';
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.dataset.objective = obj.id;
+    checkbox.checked = selectedIds.includes(obj.id);
+    const content = document.createElement('div');
+    const main = document.createElement('p');
+    main.className = 'choice-main';
+    main.textContent = obj.label;
+    const extra = document.createElement('div');
+    extra.className = 'choice-extra';
+    const radio = document.createElement('input');
+    radio.type = 'radio';
+    radio.name = 'primaryObjective';
+    radio.value = obj.id;
+    radio.disabled = !checkbox.checked;
+    radio.checked = state.primaryObjectiveId === obj.id;
+    const span = document.createElement('span');
+    span.textContent = 'Objectif principal';
+    extra.append(radio, span);
+    content.append(main, extra);
+    wrapper.append(checkbox, content);
+    refs.objectiveChoices.appendChild(wrapper);
+  });
+  updatePrimaryObjectiveBadge(refs);
+}
+
+function handleObjectiveToggle(input, refs) {
+  const id = input.dataset.objective;
+  const selectedIds = new Set(state.objectives.map(obj => obj.id).filter(Boolean));
+  if (input.checked) {
+    if (selectedIds.size >= 3) {
+      input.checked = false;
+      showToast('Limite de 3 objectifs par semaine.');
+      return;
+    }
+    selectedIds.add(id);
+  } else {
+    selectedIds.delete(id);
+  }
+  const normalized = Array.from(selectedIds);
+  state.objectives = OBJECTIVE_LIBRARY.filter(obj => normalized.includes(obj.id));
+  ensureObjectiveStatus();
+  saveState();
+  renderObjectiveChoices(refs);
+  showToast('Objectifs mis à jour.');
+}
+
+function updatePrimaryObjectiveBadge(refs) {
+  if (!refs?.primaryObjectiveBadge) return;
+  const primary = getPrimaryObjective();
+  refs.primaryObjectiveBadge.textContent = primary
+    ? `Objectif principal : ${primary.label}`
+    : 'Aucun objectif principal';
+}
+
+function renderTriggerOptions(refs) {
+  if (!refs?.triggerOptions) return;
+  refs.triggerOptions.innerHTML = '';
+  TRIGGER_OPTIONS.forEach(option => {
+    const label = document.createElement('label');
+    label.className = 'trigger-pill';
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.value = option.id;
+    checkbox.checked = state.triggerSelections?.includes(option.id) || false;
+    label.append(checkbox, document.createTextNode(option.label));
+    refs.triggerOptions.appendChild(label);
   });
 }
 
@@ -462,18 +593,6 @@ function renderStrategyFields(container) {
   }
 }
 
-function renderObjectiveFields(container) {
-  if (!container) return;
-  container.innerHTML = '';
-  for (let i = 0; i < 3; i += 1) {
-    const input = document.createElement('input');
-    input.type = 'text';
-    input.placeholder = `Objectif ${i + 1}`;
-    input.value = state.objectives[i]?.label || '';
-    container.appendChild(input);
-  }
-}
-
 function renderScripts(container) {
   if (!container) return;
   container.innerHTML = '';
@@ -484,9 +603,19 @@ function renderScripts(container) {
     title.textContent = script.title;
     card.appendChild(title);
     script.lines.forEach(line => {
+      const row = document.createElement('div');
+      row.className = 'script-line';
       const p = document.createElement('p');
       p.textContent = line;
-      card.appendChild(p);
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'btn ghost tiny-btn';
+      btn.textContent = 'Copier';
+      btn.addEventListener('click', () => {
+        copyText(line);
+      });
+      row.append(p, btn);
+      card.appendChild(row);
     });
     container.appendChild(card);
   });
@@ -660,7 +789,19 @@ function loadState() {
       return deepClone(DEFAULT_STATE);
     }
     const parsed = JSON.parse(raw);
-    return mergeState(DEFAULT_STATE, parsed);
+    const merged = mergeState(DEFAULT_STATE, parsed);
+    if (!merged.triggerNotes && merged.triggers) {
+      merged.triggerNotes = merged.triggers;
+    }
+    if (typeof merged.triggerSelections === 'undefined') {
+      merged.triggerSelections = [];
+    }
+    if (typeof merged.primaryObjectiveId === 'undefined') {
+      merged.primaryObjectiveId = merged.focus?.skill
+        ? OBJECTIVE_LIBRARY.find(obj => obj.label === merged.focus.skill)?.id || null
+        : null;
+    }
+    return merged;
   } catch (error) {
     console.warn('Impossible de charger les données, retour aux valeurs par défaut.', error);
     return deepClone(DEFAULT_STATE);
@@ -732,6 +873,14 @@ function ensureObjectiveStatus() {
   if (!state.objectiveStatus) {
     state.objectiveStatus = {};
   }
+  state.objectives = state.objectives.map(obj => {
+    if (obj?.id) return obj;
+    const match = OBJECTIVE_LIBRARY.find(item => item.label === obj?.label);
+    return match ? { id: match.id, label: match.label } : obj;
+  });
+  if (state.objectives.length > 3) {
+    state.objectives = state.objectives.slice(0, 3);
+  }
   state.objectives.forEach(obj => {
     if (typeof state.objectiveStatus[obj.id] === 'undefined') {
       state.objectiveStatus[obj.id] = false;
@@ -742,6 +891,57 @@ function ensureObjectiveStatus() {
       delete state.objectiveStatus[key];
     }
   });
+  ensurePrimaryObjective();
+}
+
+function ensurePrimaryObjective() {
+  const selectedIds = state.objectives.map(obj => obj.id);
+  if (!selectedIds.includes(state.primaryObjectiveId)) {
+    state.primaryObjectiveId = selectedIds[0] || null;
+  }
+  if (state.primaryObjectiveId) {
+    const primary = getPrimaryObjective();
+    if (primary) {
+      state.focus = { skill: primary.label, notes: '' };
+    }
+  }
+}
+
+function getPrimaryObjective() {
+  if (!state.primaryObjectiveId) return null;
+  return (
+    OBJECTIVE_LIBRARY.find(obj => obj.id === state.primaryObjectiveId) ||
+    state.objectives.find(obj => obj.id === state.primaryObjectiveId) ||
+    null
+  );
+}
+
+function copyText(text) {
+  if (navigator.clipboard?.writeText) {
+    navigator.clipboard.writeText(text).then(
+      () => showToast('Phrase copiée.'),
+      () => fallbackCopy(text)
+    );
+  } else {
+    fallbackCopy(text);
+  }
+}
+
+function fallbackCopy(text) {
+  const temp = document.createElement('textarea');
+  temp.value = text;
+  temp.setAttribute('readonly', '');
+  temp.style.position = 'absolute';
+  temp.style.left = '-9999px';
+  document.body.appendChild(temp);
+  temp.select();
+  try {
+    document.execCommand('copy');
+    showToast('Phrase copiée.');
+  } catch (error) {
+    console.warn('Copy failed', error);
+  }
+  document.body.removeChild(temp);
 }
 
 function showToast(message) {

@@ -18,29 +18,68 @@
       <button class="btn ghost" data-action="lock-parent" type="button">Verrouiller</button>
     </header>
 
+    <section class="card crisis-block" aria-labelledby="crisisTitle">
+      <div class="card-head">
+        <h2 id="crisisTitle">Mode crise (30 secondes)</h2>
+        <p class="small">À lire quand ça monte, même sans déverrouiller.</p>
+      </div>
+      <div class="crisis-grid">
+        <article class="crisis-card">
+          <div class="crisis-card-head">
+            <p class="eyebrow">Phrase à dire</p>
+            <button class="btn ghost tiny-btn" id="crisisPhraseBtn" type="button">Autre phrase</button>
+          </div>
+          <p id="crisisPhrase" class="crisis-text">« Je vois que c’est dur pour toi. On fait une pause. Je suis là. »</p>
+        </article>
+        <article class="crisis-card">
+          <p class="eyebrow">Action immédiate</p>
+          <p class="crisis-text">Pause maintenant.</p>
+          <ul class="action-list">
+            <li>⏱️ 2 minutes sans parler</li>
+            <li>🪑 Coin calme / s’éloigner du bruit</li>
+            <li>🌬️ Respiration lente ensemble</li>
+          </ul>
+          <p class="micro-copy">On ne règle rien pendant la pause.</p>
+        </article>
+        <article class="crisis-card">
+          <p class="eyebrow">Après la pause</p>
+          <p class="crisis-text">« On regarde ce qui a aidé, puis on répare et on repart. »</p>
+          <ul class="action-list">
+            <li>🫶 Dire pardon / faire un geste</li>
+            <li>🧽 Ranger ou réparer</li>
+            <li>🔁 Recommencer autrement</li>
+          </ul>
+        </article>
+      </div>
+    </section>
+
     <section class="card lock-banner" id="parentLockBanner">
-      <p>Accès protégé : saisissez le code PIN pour déverrouiller.</p>
+      <h2>Déverrouiller vos réglages</h2>
+      <p>Ce code empêche simplement les petites mains de modifier l’outil.</p>
       <form id="parentUnlockForm" class="pin-form">
-        <label for="parentPinInput">Code PIN</label>
+        <label for="parentPinInput">Votre code</label>
         <input id="parentPinInput" type="password" inputmode="numeric" maxlength="6" required />
-        <button type="submit">Déverrouiller</button>
-        <p class="micro-copy">Code par défaut : 1234 (modifiable plus bas).</p>
+        <button type="submit">Ouvrir</button>
+        <p class="micro-copy" id="pinReminder">Définissez votre PIN personnel dès que possible.</p>
       </form>
     </section>
 
     <div class="grid lockable is-locked" id="parentContent">
       <article class="card span-2">
-        <div class="card-head">
-          <h2>Objectif prioritaire de la semaine</h2>
-          <button class="btn ghost" data-action="clear-focus" type="button">Effacer</button>
+        <div class="card-head objective-head">
+          <div>
+            <h2>Objectifs de la semaine</h2>
+            <p class="small">1 objectif principal, 2 optionnels maximum.</p>
+          </div>
+          <div class="primary-badge" id="primaryObjectiveBadge">Aucun objectif principal</div>
         </div>
-        <form id="focusForm" class="stack-form">
-          <label for="focusInput">Compétence travaillée</label>
-          <input id="focusInput" type="text" placeholder="Ex : Demander une pause avant de déborder" />
-          <label for="focusNotes">Repères pour l’enfant</label>
-          <textarea id="focusNotes" rows="3" placeholder="Une phrase simple à afficher dans l’espace enfant."></textarea>
-          <button type="submit">Enregistrer</button>
-        </form>
+        <p class="micro-copy">Choisissez un seul objectif principal. Les autres sont optionnels. On cherche un progrès, pas la perfection.</p>
+        <div class="objective-choices" id="objectiveChoices"></div>
+      </article>
+
+      <article class="card span-2">
+        <h2>Scripts parentaux prêts à dire</h2>
+        <div class="scripts" id="scriptList"></div>
       </article>
 
       <article class="card">
@@ -57,14 +96,6 @@
       </article>
 
       <article class="card">
-        <h2>Déclencheurs fréquents</h2>
-        <form id="triggerForm" class="stack-form">
-          <textarea id="triggerInput" rows="5" placeholder="Bruit, transitions, fatigue..."></textarea>
-          <button type="submit">Mettre à jour</button>
-        </form>
-      </article>
-
-      <article class="card">
         <h2>Stratégies proposées</h2>
         <form id="strategyForm" class="stack-form">
           <p class="micro-copy">Entre 3 et 5 idées stables. Elles apparaissent telles quelles pour l’enfant.</p>
@@ -74,30 +105,29 @@
       </article>
 
       <article class="card">
-        <h2>Micro-objectifs</h2>
-        <form id="objectiveForm" class="stack-form">
-          <p class="micro-copy">1 à 3 objectifs, identiques toute la semaine.</p>
-          <div class="field-group" id="objectiveFields"></div>
-          <button type="submit">Enregistrer</button>
+        <h2>Déclencheurs fréquents</h2>
+        <form id="triggerForm" class="stack-form">
+          <div class="trigger-options" id="triggerOptions"></div>
+          <label for="triggerOtherInput">Autres déclencheurs</label>
+          <textarea id="triggerOtherInput" rows="3" placeholder="À compléter si besoin."></textarea>
+          <button type="submit">Mettre à jour</button>
         </form>
       </article>
 
       <article class="card">
         <h2>Récompenses</h2>
+        <p class="micro-copy reward-note">Les récompenses servent à encourager les efforts. Elles ne se négocient pas quand l’émotion est trop forte. On valide après la pause ou la réparation.</p>
         <form id="rewardForm" class="stack-form">
           <label>Récompenses immédiates</label>
-          <textarea data-reward="immediate" rows="3" placeholder="Moment câlin, puzzle..."></textarea>
+          <textarea data-reward="immediate" rows="3" placeholder="Moment câlin, puzzle, jeu calme..."></textarea>
           <label>Récompenses programmées</label>
           <textarea data-reward="planned" rows="3" placeholder="Balade, vélo, cinéma..."></textarea>
+          <label for="plannedNextInput">Prochaine sortie programmée</label>
+          <input id="plannedNextInput" type="text" placeholder="Ex : Samedi 15h – Vélo" />
           <label>Récompenses symboliques</label>
           <textarea data-reward="symbolic" rows="3" placeholder="Badges, messages..."></textarea>
-          <button type="submit">Publier pour l’enfant</button>
+          <button type="submit">Rendre visible côté enfant</button>
         </form>
-      </article>
-
-      <article class="card span-2">
-        <h2>Scripts parentaux</h2>
-        <div class="scripts" id="scriptList"></div>
       </article>
 
       <article class="card">
