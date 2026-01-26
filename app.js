@@ -93,11 +93,9 @@ const DEFAULT_STATE = {
   objectiveCompletions: 0,
   primaryObjectiveId: OBJECTIVE_LIBRARY[0].id,
   strategies: [
-    '🌬️ Respire avec moi (30s)',
-    '🤲 Appuie fort (20s)',
+    '🌬️ Respire avec moi (30 sec)',
+    '🤲 Appuie fort (20 sec)',
     '🪑 Coin calme (2 min)',
-    'Boire un verre d’eau en conscience',
-    'Mettre le casque silence',
   ],
   objectives: OBJECTIVE_LIBRARY.slice(0, 3).map(obj => ({ id: obj.id, label: obj.label })),
   objectiveStatus: {},
@@ -150,8 +148,6 @@ function initChildPage() {
     badgeList: document.getElementById('badgeList'),
     rewardOfDay: document.getElementById('rewardOfDay'),
     focusSummary: document.getElementById('focusSummary'),
-    moreToggle: document.getElementById('moreToggle'),
-    morePanel: document.getElementById('morePanel'),
   };
 
   renderChildView(refs);
@@ -185,14 +181,6 @@ function initChildPage() {
     showToast('Nouvelle journée, on repart sereinement.');
   });
 
-  refs.moreToggle?.addEventListener('click', () => {
-    const hidden = refs.morePanel?.hidden ?? true;
-    if (refs.morePanel) {
-      refs.morePanel.hidden = !hidden;
-    }
-    refs.moreToggle.textContent = hidden ? 'Fermer mon carnet' : 'Mon carnet';
-    refs.moreToggle.setAttribute('aria-expanded', String(hidden));
-  });
 }
 
 function renderChildView(refs) {

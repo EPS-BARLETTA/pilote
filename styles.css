@@ -190,6 +190,10 @@ body[data-page="child"] .container {
   font-size: 1.5rem;
 }
 
+.help-text {
+  margin-top: 6px;
+}
+
 .child-nav {
   display: flex;
   gap: 8px;
@@ -245,6 +249,10 @@ body[data-page="child"] .container {
   color: var(--text);
 }
 
+.meter-note {
+  margin-top: 8px;
+}
+
 .big-pause {
   font-size: 1.1rem;
 }
@@ -270,14 +278,42 @@ body[data-page="child"] .container {
   background: #f2f7ff;
 }
 
-.more-panel {
-  display: grid;
-  gap: 12px;
+.carnet {
   margin-top: 12px;
 }
 
-.more-panel[hidden] {
+.carnet summary {
+  cursor: pointer;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.carnet summary::marker {
   display: none;
+}
+
+.carnet summary::after {
+  content: '+';
+  font-size: 1.2rem;
+  color: var(--muted);
+}
+
+.carnet[open] summary::after {
+  content: '–';
+}
+
+.carnet-content {
+  margin-top: 12px;
+  display: grid;
+  gap: 12px;
+}
+
+.nested-card {
+  margin: 0;
+  box-shadow: none;
 }
 
 .objective-list {
@@ -355,6 +391,10 @@ body[data-page="child"] .container {
 .reward-text {
   font-size: 1.05rem;
   color: var(--text);
+}
+
+.reward-text span {
+  font-weight: 600;
 }
 
 /* Parent & Bilan */

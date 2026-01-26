@@ -12,8 +12,9 @@
       <div class="copilot-avatar" aria-hidden="true">🛟</div>
       <div>
         <p class="eyebrow">Mon cockpit</p>
-        <h1>Tu es en sécurité ici.</h1>
-        <p class="small">Choisis ton niveau, et je t’aide à redescendre.</p>
+        <h1>Mon cockpit</h1>
+        <p class="small">Ici, tu es en sécurité. On va redescendre ensemble.</p>
+        <p class="small help-text">Choisis ton niveau. Si c’est trop dur, on fait une pause.</p>
       </div>
     </header>
 
@@ -55,62 +56,66 @@
           <span class="tiny">Trop plein</span>
         </button>
       </div>
+      <p class="micro-copy meter-note">Il n’y a pas de mauvaise réponse.</p>
     </section>
 
     <section class="card pause-card" id="pauseCard" hidden>
       <div>
-        <h2>Tu veux que je t’aide ?</h2>
+        <h2>Mon bouton pause</h2>
         <p class="small">Demander une pause, c’est une compétence.</p>
+        <p class="micro-copy">Chaque pause demandée, c’est une victoire. +1 jeton.</p>
       </div>
       <button class="btn btn-primary big-pause" id="pauseButton" type="button">🛑 Je me mets en pause</button>
     </section>
 
     <section class="card tool-card" id="toolCard" hidden>
       <div class="card-head">
-        <h2>Choisis un frein :</h2>
+        <h2>Mes freins (choisis-en un)</h2>
         <p class="small">Celui qui t’aide le plus maintenant.</p>
       </div>
       <div class="tools" id="toolList"></div>
     </section>
 
-    <button class="btn subtle" id="moreToggle" type="button" aria-expanded="false">Mon carnet</button>
+    <details class="card carnet" id="morePanel">
+      <summary>Mon carnet</summary>
+      <div class="carnet-content">
+        <article class="card nested-card">
+          <div class="card-head">
+            <h2>Mon objectif du moment</h2>
+            <button class="btn ghost" id="resetObjectivesBtn" type="button">Réinitialiser</button>
+          </div>
+          <p class="small" id="focusSummary"></p>
+          <ul id="objectiveList" class="objective-list"></ul>
+        </article>
 
-    <section class="more-panel" id="morePanel" hidden>
-      <article class="card">
-        <div class="card-head">
-          <h2>Mon objectif du moment</h2>
-          <button class="btn ghost" id="resetObjectivesBtn" type="button">Réinitialiser</button>
-        </div>
-        <p class="small" id="focusSummary"></p>
-        <ul id="objectiveList" class="objective-list"></ul>
-      </article>
+        <article class="card nested-card">
+          <div class="card-head">
+            <h2>Mes jetons</h2>
+            <p class="token-count" id="tokenCount">0</p>
+          </div>
+          <p class="micro-copy">Chaque pause demandée, c’est un jeton d’effort.</p>
+          <ul id="badgeList" class="badge-list"></ul>
+        </article>
 
-      <article class="card">
-        <div class="card-head">
-          <h2>Mes jetons</h2>
-          <p class="token-count" id="tokenCount">0</p>
-        </div>
-        <ul id="badgeList" class="badge-list"></ul>
-      </article>
+        <article class="card nested-card">
+          <h2>Petits trucs qui aident</h2>
+          <ul class="anchor-list">
+            <li>👐 Frotte doucement tes mains</li>
+            <li>👣 Pose tes pieds bien à plat</li>
+            <li>👂 Écoute trois sons autour de toi</li>
+            <li>👃 Choisis une odeur rassurante</li>
+          </ul>
+        </article>
 
-      <article class="card">
-        <h2>Petites ancres</h2>
-        <ul class="anchor-list">
-          <li>👐 Frotte doucement tes mains</li>
-          <li>👣 Pose tes pieds bien à plat</li>
-          <li>👂 Écoute trois sons autour de toi</li>
-          <li>👃 Choisis une odeur rassurante</li>
-        </ul>
-      </article>
-
-      <article class="card">
-        <div class="card-head">
-          <h2>Ma récompense validée</h2>
-          <span class="small">Confirmée par ton parent</span>
-        </div>
-        <p id="rewardOfDay" class="reward-text"></p>
-      </article>
-    </section>
+        <article class="card nested-card">
+          <div class="card-head">
+            <h2>Ma récompense</h2>
+            <span class="small">Validée par mon parent ✅</span>
+          </div>
+          <p class="reward-text">Ma récompense (quand je suis prêt) : <span id="rewardOfDay"></span></p>
+        </article>
+      </div>
+    </details>
   </main>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
