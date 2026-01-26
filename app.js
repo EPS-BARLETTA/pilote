@@ -1,88 +1,85 @@
 const STORAGE_KEY = 'pilote-state-v1';
-const EMOTION_LEVELS = {
+const EMOTION_LABELS = {
   1: 'Calme',
   2: 'OK',
   3: 'Chargé',
-  4: 'Besoin d'aide',
+  4: 'Besoin d\'aide',
   5: 'Trop plein',
 };
 
-const BADGE_RULES = [
-  {
-    id: 'pause-pro',
-    label: 'Expert des pauses',
-    description: '3 pauses demandées en autonomie',
-    check: state => state.pauseHistory.length >= 3,
-  },
-  {
-    id: 'steady-pilot',
-    label: 'Pilote régulier',
-    description: '10 relevés du baromètre dans la semaine',
-    check: state => state.emotionHistory.length >= 10,
-  },
-  {
-    id: 'objective-ace',
-    label: 'Gardien des objectifs',
-    description: '5 objectifs cochés avec effort',
-    check: state => state.objectiveCompletions >= 5,
-  },
+const OBJECTIVE_LIBRARY = [
+  { id: 'pause', label: 'Demander une pause quand c\'est trop dur' },
+  { id: 'level3', label: 'Repérer quand mon moteur est à 3' },
+  { id: 'tool', label: 'Utiliser un outil pour redescendre' },
+  { id: 'help', label: 'Accepter l\'aide d\'un adulte' },
+  { id: 'return', label: 'Revenir après une pause' },
+  { id: 'start', label: 'Commencer une tâche sans repousser' },
+  { id: 'first-step', label: 'Faire le premier petit pas' },
+  { id: 'ask', label: 'Demander de l\'aide au lieu d\'abandonner' },
+  { id: 'say', label: 'Dire quand quelque chose m\'énerve' },
+  { id: 'repair', label: 'Réparer après un débordement' },
+  { id: 'listen', label: 'Écouter une consigne courte' },
+  { id: 'try-other', label: 'Essayer une autre solution quand ça ne marche pas' },
+];
+
+const CRISIS_PHRASES = [
+  '« Je vois que c\'est dur. On met tout en pause. Je suis là. »',
+  '« Ton moteur est trop chargé. On fait une pause ensemble. »',
+  '« On respire d\'abord, on parle après. »',
 ];
 
 const SCRIPT_LIBRARY = [
   {
-    title: 'Avant (prévention)',
+    title: 'Avant',
     lines: [
-      '« Dans 5 minutes, on change. Je te le rappelle. »',
-      '« Tu préfères A ou B ? »',
+      '« Dans 5 minutes, on change. Tu es prêt ? »',
+      '« Tu préfères commencer par A ou B ? »',
       '« On commence par le plus facile. »',
     ],
   },
   {
-    title: 'Pendant (tension)',
+    title: 'Pendant',
     lines: [
       '« Je vois que ça monte. Pause. »',
       '« On parle après, pas maintenant. »',
-      '« Je suis là. »',
+      '« Je reste avec toi. »',
     ],
   },
   {
-    title: 'Après (apprentissage)',
+    title: 'Après',
     lines: [
-      '« Qu'est-ce qui t'a aidé ? »',
+      '« Qu\'est-ce qui t\'a aidé ? »',
       '« On garde cette idée. »',
-      '« On essaiera plus tôt la prochaine fois. »',
+      '« La prochaine fois, on essaie plus tôt. »',
     ],
   },
-];
-
-const OBJECTIVE_LIBRARY = [
-  { id: 'reg-pause', label: 'Demander une pause quand ça devient trop dur' },
-  { id: 'reg-level', label: 'Repérer quand mon moteur est à 3' },
-  { id: 'reg-tool', label: 'Utiliser un outil pour redescendre' },
-  { id: 'reg-help', label: 'Accepter l'aide d'un adulte' },
-  { id: 'reg-return', label: 'Revenir après une pause' },
-  { id: 'eng-start', label: 'Commencer une tâche sans repousser' },
-  { id: 'eng-step', label: 'Faire le premier petit pas' },
-  { id: 'eng-ask', label: 'Demander de l'aide au lieu d'abandonner' },
-  { id: 'rel-say', label: 'Dire quand quelque chose m'énerve' },
-  { id: 'rel-repair', label: 'Réparer après un débordement' },
-  { id: 'rel-listen', label: 'Écouter une consigne courte' },
-  { id: 'rel-try', label: 'Essayer une autre solution quand ça ne marche pas' },
-];
-
-const CRISIS_PHRASES = [
-  '« Je vois que c'est dur pour toi. On fait une pause. Je suis là. »',
-  '« Ton moteur est trop chargé. On fait une pause. »',
-  '« Je t'aide. On respire d'abord. »',
 ];
 
 const TRIGGER_OPTIONS = [
   { id: 'noise', label: 'Bruit' },
   { id: 'transition', label: 'Transitions' },
   { id: 'fatigue', label: 'Fatigue' },
-  { id: 'frustration', label: 'Frustration / tâche difficile' },
+  { id: 'frustration', label: 'Frustration' },
   { id: 'crowd', label: 'Beaucoup de monde' },
   { id: 'hunger', label: 'Faim' },
+];
+
+const BADGE_RULES = [
+  {
+    id: 'pause-pro',
+    label: 'Expert des pauses',
+    check: state => state.pauseHistory.length >= 3,
+  },
+  {
+    id: 'steady',
+    label: 'Pilote régulier',
+    check: state => state.emotionHistory.length >= 10,
+  },
+  {
+    id: 'repair',
+    label: 'Gardien des objectifs',
+    check: state => state.objectiveCompletions >= 5,
+  },
 ];
 
 const DEFAULT_STATE = {
@@ -93,49 +90,43 @@ const DEFAULT_STATE = {
   objectiveCompletions: 0,
   primaryObjectiveId: OBJECTIVE_LIBRARY[0].id,
   strategies: [
-    '🌬️ Respire avec moi (30 sec)',
-    '🤲 Appuie fort (20 sec)',
+    '🤲 Appuyer / serrer (20 s)',
     '🪑 Coin calme (2 min)',
+    '🌬️ Respirer 5 fois',
   ],
-  objectives: OBJECTIVE_LIBRARY.slice(0, 3).map(obj => ({ id: obj.id, label: obj.label })),
+  objectives: OBJECTIVE_LIBRARY.slice(0, 3),
   objectiveStatus: {},
   rewards: {
-    immediate: ['Moment câlin', 'Puzzle rapide', 'Jeu coopératif de 10 min'],
-    planned: ['Balade du week-end', 'Sortie vélo', 'Cinéma choisi ensemble'],
-    symbolic: ['Badge Expert des pauses', 'Message audio de fierté'],
+    immediate: ['Moment câlin', 'Puzzle ensemble'],
+    planned: ['Balade du week-end'],
+    symbolic: ['Message audio de fierté'],
+    next: '',
   },
   focus: { skill: '', notes: '' },
   routines: { morning: '', homework: '', evening: '' },
-  triggers: '',
   triggerSelections: [],
   triggerNotes: '',
+  emotionHistory: [],
+  pauseHistory: [],
   reviews: {
     child: { helps: '', proud: '', try: '' },
     parent: { risks: '', strategies: '', structure: '' },
   },
-  rewardNext: '',
-  emotionHistory: [],
-  pauseHistory: [],
-  badges: {},
 };
 
 let state = loadState();
-let crisisPhraseIndex = 0;
+let crisisIndex = 0;
 let breathInterval;
 
 document.addEventListener('DOMContentLoaded', () => {
+  const page = document.body.dataset.page;
   ensureObjectiveStatus();
-  const page = document.body?.dataset?.page;
-  if (page === 'child') {
-    initChildPage();
-  } else if (page === 'parent') {
-    initParentPage();
-  } else if (page === 'bilan') {
-    initBilanPage();
-  }
+  if (page === 'child') initChild();
+  if (page === 'parent') initParent();
+  if (page === 'bilan') initBilan();
 });
 
-function initChildPage() {
+function initChild() {
   const refs = {
     meterButtons: document.querySelectorAll('.meter button[data-level]'),
     levelStatus: document.getElementById('levelStatus'),
@@ -155,139 +146,78 @@ function initChildPage() {
     breathClose: document.getElementById('breath-close'),
   };
 
-  renderChildView(refs);
-  setupBreathModal(refs);
-
-  refs.meterButtons.forEach(button => {
-    button.addEventListener('click', () => handleLevelSelection(Number(button.dataset.level), refs));
-  });
-
-  refs.pauseButton?.addEventListener('click', () => handlePauseRequest(refs));
-
+  renderChild(refs);
+  setupBreath(refs);
+  refs.meterButtons.forEach(btn =>
+    btn.addEventListener('click', () => handleLevelSelect(Number(btn.dataset.level), refs))
+  );
+  refs.pauseButton?.addEventListener('click', () => handlePause(refs));
   refs.objectiveList?.addEventListener('change', event => {
     if (!event.target.matches('input[type="checkbox"]')) return;
     const id = event.target.dataset.objective;
     const checked = event.target.checked;
-    const previous = state.objectiveStatus[id];
+    const prev = state.objectiveStatus[id];
     state.objectiveStatus[id] = checked;
-    if (checked && !previous) {
-      addTokens(1, 'Objectif validé');
+    if (checked && !prev) {
       state.objectiveCompletions += 1;
+      addTokens(1, 'Pause demandée');
     }
     saveState();
-    renderChildView(refs);
+    renderChild(refs);
   });
-
   refs.resetObjectivesBtn?.addEventListener('click', () => {
-    Object.keys(state.objectiveStatus).forEach(key => {
-      state.objectiveStatus[key] = false;
-    });
+    Object.keys(state.objectiveStatus).forEach(key => (state.objectiveStatus[key] = false));
     saveState();
-    renderChildView(refs);
-    showToast('Nouvelle journée, on repart sereinement.');
+    renderChild(refs);
   });
 }
 
-function renderChildView(refs) {
-  if (!refs) return;
-  refs.meterButtons?.forEach(button => {
-    button.classList.toggle('is-selected', Number(button.dataset.level) === state.currentLevel);
+function renderChild(refs) {
+  refs.meterButtons.forEach(btn => {
+    btn.classList.toggle('is-selected', Number(btn.dataset.level) === state.currentLevel);
   });
-  if (refs.levelStatus) {
-    refs.levelStatus.textContent = state.currentLevel
-      ? `${state.currentLevel} – ${EMOTION_LEVELS[state.currentLevel]}`
-      : 'Choisis ton niveau pour continuer.';
-  }
-  const showPause = Number(state.currentLevel) >= 4;
-  if (refs.pauseCard) {
-    refs.pauseCard.hidden = !showPause;
-    if (showPause) {
-      refs.pauseCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
-  }
-  if (refs.toolCard) {
-    refs.toolCard.hidden = !showPause;
-  }
+  refs.levelStatus.textContent = state.currentLevel
+    ? `${EMOTION_LABELS[state.currentLevel]} sélectionné`
+    : 'Choisis ton niveau pour continuer.';
+  const showPause = state.currentLevel >= 4;
+  refs.pauseCard.hidden = !showPause;
+  refs.toolCard.hidden = !showPause;
   renderTools(refs.toolList);
   renderChildObjectives(refs.objectiveList);
-  renderTokenCount(refs.tokenCount);
+  refs.tokenCount.textContent = state.tokens;
   renderBadges(refs.badgeList);
-  renderRewardOfDay(refs.rewardOfDay);
+  refs.rewardOfDay.textContent =
+    state.rewards.next || state.rewards.immediate[0] || state.rewards.planned[0] || 'À définir.';
   renderFocusSummary(refs.focusSummary);
 }
 
-function setupBreathModal(refs) {
-  if (!refs.breathModal || !refs.breathTrigger || !refs.breathClose) return;
-  refs.breathTrigger.addEventListener('click', () => openBreathModal(refs));
-  refs.breathClose.addEventListener('click', () => closeBreathModal(refs));
-  refs.breathModal.addEventListener('click', event => {
-    if (event.target === refs.breathModal) {
-      closeBreathModal(refs);
-    }
-  });
-}
-
-function openBreathModal(refs) {
-  refs.breathModal.hidden = false;
-  updateBreathLabel(refs, true);
-  clearInterval(breathInterval);
-  let inhale = false;
-  breathInterval = setInterval(() => {
-    inhale = !inhale;
-    updateBreathLabel(refs, inhale);
-  }, 3000);
-}
-
-function updateBreathLabel(refs, inhale) {
-  if (refs.breathLabel) {
-    refs.breathLabel.textContent = inhale ? 'Inspire…' : 'Expire…';
-  }
-}
-
-function closeBreathModal(refs) {
-  refs.breathModal.hidden = true;
-  clearInterval(breathInterval);
-}
-
-function handleLevelSelection(level, refs) {
+function handleLevelSelect(level, refs) {
   state.currentLevel = level;
   state.emotionHistory.push({ level, timestamp: new Date().toISOString() });
-  if (state.emotionHistory.length > 30) {
-    state.emotionHistory.shift();
-  }
+  if (state.emotionHistory.length > 30) state.emotionHistory.shift();
   saveState();
-  renderChildView(refs);
-  if (level >= 4) {
-    showToast('Pause conseillée, tu peux demander de l'aide.');
-  }
+  renderChild(refs);
+  if (level >= 4) showToast('Pause conseillée, on baisse le moteur.');
 }
 
-function handlePauseRequest(refs) {
+function handlePause(refs) {
   state.pauseHistory.push({ timestamp: new Date().toISOString() });
   addTokens(1, 'Pause demandée');
   saveState();
-  renderChildView(refs);
-  showToast('Pause enclenchée. Respire, tu gères !');
+  renderChild(refs);
+  showToast('Bravo d\'avoir demandé la pause.');
 }
 
 function renderTools(container) {
   if (!container) return;
   container.innerHTML = '';
-  const strategies = (state.strategies && state.strategies.length ? state.strategies : DEFAULT_STATE.strategies)
-    .slice(0, 3);
-  strategies.forEach(text => {
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.className = 'btn';
-    button.textContent = text;
-    container.appendChild(button);
+  state.strategies.slice(0, 3).forEach(text => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'btn';
+    btn.textContent = text;
+    container.appendChild(btn);
   });
-  if (!strategies.length) {
-    const p = document.createElement('p');
-    p.className = 'small';
-    p.textContent = 'Le parent ajoutera ici les idées calmes.';
-    container.appendChild(p);
-  }
 }
 
 function renderChildObjectives(list) {
@@ -300,90 +230,63 @@ function renderChildObjectives(list) {
     checkbox.type = 'checkbox';
     checkbox.dataset.objective = obj.id;
     checkbox.checked = Boolean(state.objectiveStatus[obj.id]);
-    const span = document.createElement('span');
-    span.textContent = obj.label;
-    label.append(checkbox, span);
+    label.append(checkbox, document.createTextNode(obj.label));
     li.appendChild(label);
-    if (checkbox.checked) {
-      li.classList.add('completed');
-    }
+    if (checkbox.checked) li.classList.add('completed');
     list.appendChild(li);
   });
 }
 
-function renderTokenCount(el) {
-  if (el) {
-    el.textContent = String(state.tokens);
-  }
-}
-
-function renderBadges(container) {
-  if (!container) return;
-  if (!state.badges) {
-    state.badges = {};
-  }
-  container.innerHTML = '';
-  BADGE_RULES.forEach(rule => {
-    const earned = rule.check(state);
-    state.badges[rule.id] = earned;
-    const li = document.createElement('li');
-    const label = document.createElement('span');
-    label.textContent = rule.label;
-    const status = document.createElement('span');
-    status.textContent = earned ? 'Gagné' : 'À venir';
-    status.className = earned ? 'badge-earned' : 'tiny';
-    li.append(label, status);
-    container.appendChild(li);
+function setupBreath(refs) {
+  if (!refs.breathTrigger || !refs.breathModal) return;
+  refs.breathTrigger.addEventListener('click', () => {
+    refs.breathModal.hidden = false;
+    updateBreathLabel(refs, true);
+    clearInterval(breathInterval);
+    let inhale = false;
+    breathInterval = setInterval(() => {
+      inhale = !inhale;
+      updateBreathLabel(refs, inhale);
+    }, 3000);
   });
-  saveState();
+  refs.breathClose?.addEventListener('click', () => closeBreath(refs));
+  refs.breathModal.addEventListener('click', event => {
+    if (event.target === refs.breathModal) closeBreath(refs);
+  });
 }
 
-function renderRewardOfDay(el) {
-  if (!el) return;
-  const reward = state.rewardNext
-    || state.rewards.immediate?.[0]
-    || state.rewards.planned?.[0]
-    || 'Ton parent choisira une récompense douce ici.';
-  el.textContent = reward;
+function updateBreathLabel(refs, inhale) {
+  if (refs.breathLabel) refs.breathLabel.textContent = inhale ? 'Inspire…' : 'Expire…';
 }
 
-function renderFocusSummary(el) {
-  if (!el) return;
-  const primary = getPrimaryObjective();
-  if (primary) {
-    el.textContent = `Objectif principal : ${primary.label}`;
-    return;
-  }
-  if (state.focus?.skill) {
-    const notes = state.focus.notes ? ` – ${state.focus.notes}` : '';
-    el.textContent = `Objectif du moment : ${state.focus.skill}${notes}`;
-    return;
-  }
-  el.textContent = 'Ton parent ajoutera ici l'objectif du moment.';
+function closeBreath(refs) {
+  refs.breathModal.hidden = true;
+  clearInterval(breathInterval);
 }
 
-function initParentPage() {
+/* Parent */
+
+function initParent() {
   const refs = {
     lockBanner: document.getElementById('parentLockBanner'),
-    content: document.getElementById('parentContent'),
     unlockForm: document.getElementById('parentUnlockForm'),
     pinInput: document.getElementById('parentPinInput'),
-    pinReminder: document.getElementById('pinReminder'),
     pinSetupPanel: document.getElementById('pinSetupPanel'),
     pinSetupForm: document.getElementById('pinSetupForm'),
     pinSetupInput: document.getElementById('pinSetupInput'),
+    content: document.getElementById('parentContent'),
     lockBtn: document.querySelector('[data-action="lock-parent"]'),
     crisisPhrase: document.getElementById('crisisPhrase'),
     crisisPhraseBtn: document.getElementById('crisisPhraseBtn'),
     objectiveChoices: document.getElementById('objectiveChoices'),
-    primaryObjectiveBadge: document.getElementById('primaryObjectiveBadge'),
+    primaryBadge: document.getElementById('primaryObjectiveBadge'),
     routineForm: document.getElementById('routineForm'),
     routineFields: document.querySelectorAll('#routineForm textarea[data-routine]'),
+    strategyForm: document.getElementById('strategyForm'),
+    strategyFields: document.getElementById('strategyFields'),
     triggerForm: document.getElementById('triggerForm'),
     triggerOptions: document.getElementById('triggerOptions'),
     triggerOtherInput: document.getElementById('triggerOtherInput'),
-    strategyForm: document.getElementById('strategyForm'),
-    strategyFields: document.getElementById('strategyFields'),
     rewardForm: document.getElementById('rewardForm'),
     rewardInputs: document.querySelectorAll('#rewardForm textarea[data-reward]'),
     plannedNextInput: document.getElementById('plannedNextInput'),
@@ -392,35 +295,30 @@ function initParentPage() {
     pinInputNew: document.getElementById('pinInput'),
   };
 
-  if (!refs.unlockForm) return;
-
-  setParentLocked(refs, true);
-  renderCrisisPhrase(refs);
   renderScripts(refs.scriptList);
-  renderStrategyFields(refs.strategyFields);
   renderObjectiveChoices(refs);
-  renderTriggerOptions(refs);
+  renderStrategyFields(refs.strategyFields);
+  renderTriggerOptions(refs.triggerOptions);
   populateParentForms(refs);
   updatePinPanels(refs);
+  setParentLocked(refs, true);
 
-  refs.unlockForm.addEventListener('submit', event => {
+  refs.unlockForm?.addEventListener('submit', event => {
     event.preventDefault();
-    if (refs.pinInput?.value.trim() === state.pin) {
+    if (refs.pinInput.value.trim() === state.pin) {
       setParentLocked(refs, false);
       refs.pinInput.value = '';
-      showToast('Tour de contrôle ouverte pour cette session.');
+      showToast('Tour de contrôle ouverte.');
     } else {
       showToast('Code incorrect.');
     }
   });
-
   refs.lockBtn?.addEventListener('click', () => setParentLocked(refs, true));
-
   refs.pinSetupForm?.addEventListener('submit', event => {
     event.preventDefault();
-    const newPin = refs.pinSetupInput?.value.trim();
-    if (!/^[0-9]{4,6}$/.test(newPin || '')) {
-      showToast('Le code doit comporter 4 à 6 chiffres.');
+    const newPin = refs.pinSetupInput.value.trim();
+    if (!/^[0-9]{4,6}$/.test(newPin)) {
+      showToast('Code à 4-6 chiffres.');
       return;
     }
     state.pin = newPin;
@@ -428,215 +326,166 @@ function initParentPage() {
     refs.pinSetupInput.value = '';
     saveState();
     updatePinPanels(refs);
-    showToast('PIN enregistré. Vous pouvez ouvrir la tour de contrôle.');
+    showToast('PIN enregistré.');
   });
-
-  refs.crisisPhraseBtn?.addEventListener('click', () => {
-    cycleCrisisPhrase(refs);
-  });
-
-  refs.objectiveChoices?.addEventListener('change', event => {
-    const target = event.target;
-    if (target.matches('input[type="checkbox"][data-objective]')) {
-      handleObjectiveToggle(target, refs);
-    }
-    if (target.matches('input[type="radio"][name="primaryObjective"]')) {
-      state.primaryObjectiveId = target.value;
-      ensurePrimaryObjective();
-      saveState();
-      renderObjectiveChoices(refs);
-      showToast('Objectif principal défini.');
-    }
-  });
-
-  refs.routineForm?.addEventListener('submit', event => {
-    event.preventDefault();
-    refs.routineFields?.forEach(area => {
-      state.routines[area.dataset.routine] = area.value.trim();
-    });
-    saveState();
-    showToast('Routines sauvegardées.');
-  });
-
-  refs.triggerForm?.addEventListener('submit', event => {
-    event.preventDefault();
-    const selections = Array.from(
-      refs.triggerOptions?.querySelectorAll('input[type="checkbox"]:checked') || []
-    );
-    state.triggerSelections = selections.map(input => input.value);
-    state.triggerNotes = refs.triggerOtherInput?.value.trim() || '';
-    state.triggers = state.triggerNotes;
-    saveState();
-    showToast('Déclencheurs mis à jour.');
-  });
-
-  refs.strategyForm?.addEventListener('submit', event => {
-    event.preventDefault();
-    const values = Array.from(refs.strategyFields?.querySelectorAll('input') || [])
-      .map(input => input.value.trim())
-      .filter(Boolean);
-    if (values.length < 3) {
-      showToast('Ajoutez au moins 3 idées stables.');
-      return;
-    }
-    state.strategies = values.slice(0, 5);
-    saveState();
-    showToast('Stratégies mises à jour.');
-  });
-
-  refs.rewardForm?.addEventListener('submit', event => {
-    event.preventDefault();
-    refs.rewardInputs?.forEach(textarea => {
-      state.rewards[textarea.dataset.reward] = splitLines(textarea.value);
-    });
-    state.rewardNext = refs.plannedNextInput?.value.trim() || '';
-    saveState();
-    showToast('Récompenses publiées.');
-  });
-
   refs.pinForm?.addEventListener('submit', event => {
     event.preventDefault();
-    const newPin = refs.pinInputNew?.value.trim();
+    const newPin = refs.pinInputNew.value.trim();
     if (!/^[0-9]{4,6}$/.test(newPin)) {
-      showToast('Le code doit comporter 4 à 6 chiffres.');
+      showToast('Code à 4-6 chiffres.');
       return;
     }
     state.pin = newPin;
     state.pinCustom = true;
     refs.pinInputNew.value = '';
     saveState();
-    showToast('Code PIN mis à jour.');
     updatePinPanels(refs);
+    showToast('PIN mis à jour.');
+  });
+  refs.crisisPhraseBtn?.addEventListener('click', () => {
+    crisisIndex = (crisisIndex + 1) % CRISIS_PHRASES.length;
+    refs.crisisPhrase.textContent = CRISIS_PHRASES[crisisIndex];
+  });
+  refs.objectiveChoices?.addEventListener('change', event => {
+    const target = event.target;
+    if (target.matches('input[type="checkbox"]')) handleObjectiveToggle(refs, target);
+    if (target.matches('input[type="radio"]')) {
+      state.primaryObjectiveId = target.value;
+      ensureObjectiveStatus();
+      saveState();
+      renderObjectiveChoices(refs);
+      showToast('Objectif principal défini.');
+    }
+  });
+  refs.routineForm?.addEventListener('submit', event => {
+    event.preventDefault();
+    refs.routineFields.forEach(area => {
+      state.routines[area.dataset.routine] = area.value.trim();
+    });
+    saveState();
+    showToast('Routines sauvegardées.');
+  });
+  refs.strategyForm?.addEventListener('submit', event => {
+    event.preventDefault();
+    const values = Array.from(refs.strategyFields.querySelectorAll('input'))
+      .map(input => input.value.trim())
+      .filter(Boolean);
+    if (values.length < 3) {
+      showToast('Ajoutez au moins 3 idées.');
+      return;
+    }
+    state.strategies = values.slice(0, 5);
+    saveState();
+    showToast('Stratégies mises à jour.');
+  });
+  refs.triggerForm?.addEventListener('submit', event => {
+    event.preventDefault();
+    const selections = Array.from(refs.triggerOptions.querySelectorAll('input:checked')).map(
+      input => input.value
+    );
+    state.triggerSelections = selections;
+    state.triggerNotes = refs.triggerOtherInput.value.trim();
+    saveState();
+    showToast('Déclencheurs mis à jour.');
+  });
+  refs.rewardForm?.addEventListener('submit', event => {
+    event.preventDefault();
+    refs.rewardInputs.forEach(area => {
+      state.rewards[area.dataset.reward] = splitLines(area.value);
+    });
+    state.rewards.next = refs.plannedNextInput.value.trim();
+    saveState();
+    showToast('Récompenses validées.');
   });
 }
 
 function setParentLocked(refs, locked) {
-  if (refs.lockBanner) {
-    refs.lockBanner.style.display = locked ? 'block' : 'none';
-  }
-  if (refs.content) {
-    refs.content.classList.toggle('is-locked', locked);
-  }
+  refs.lockBanner.style.display = locked ? 'block' : 'none';
+  refs.content.classList.toggle('is-locked', locked);
 }
 
 function updatePinPanels(refs) {
   const hasCustom = state.pinCustom;
-  if (refs.pinSetupPanel) {
-    refs.pinSetupPanel.hidden = hasCustom;
-  }
-  if (refs.unlockForm) {
-    refs.unlockForm.style.display = hasCustom ? '' : 'none';
-  }
-  if (refs.pinReminder) {
-    refs.pinReminder.style.display = hasCustom ? 'none' : 'block';
-  }
+  if (refs.pinSetupPanel) refs.pinSetupPanel.hidden = hasCustom;
+  if (refs.unlockForm) refs.unlockForm.style.display = hasCustom ? '' : 'none';
 }
 
-function populateParentForms(refs) {
-  refs.routineFields?.forEach(area => {
-    area.value = state.routines[area.dataset.routine] || '';
+function renderScripts(container) {
+  if (!container) return;
+  container.innerHTML = '';
+  SCRIPT_LIBRARY.forEach(group => {
+    const card = document.createElement('div');
+    card.className = 'script-card';
+    const title = document.createElement('h3');
+    title.textContent = group.title;
+    card.appendChild(title);
+    group.lines.forEach(line => {
+      const row = document.createElement('div');
+      row.className = 'script-line';
+      const p = document.createElement('p');
+      p.textContent = line;
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'btn ghost';
+      btn.textContent = 'Copier';
+      btn.addEventListener('click', () => navigator.clipboard?.writeText(line));
+      row.append(p, btn);
+      card.appendChild(row);
+    });
+    container.appendChild(card);
   });
-  if (refs.triggerOtherInput) {
-    refs.triggerOtherInput.value = state.triggerNotes || state.triggers || '';
-  }
-  Array.from(refs.triggerOptions?.querySelectorAll('input[type="checkbox"]') || []).forEach(
-    checkbox => {
-      checkbox.checked = state.triggerSelections?.includes(checkbox.value) || false;
-    }
-  );
-  refs.rewardInputs?.forEach(textarea => {
-    textarea.value = (state.rewards[textarea.dataset.reward] || []).join('\n');
-  });
-  if (refs.plannedNextInput) {
-    refs.plannedNextInput.value = state.rewardNext || '';
-  }
-}
-
-function renderCrisisPhrase(refs) {
-  if (!refs?.crisisPhrase) return;
-  refs.crisisPhrase.textContent = CRISIS_PHRASES[crisisPhraseIndex];
-}
-
-function cycleCrisisPhrase(refs) {
-  crisisPhraseIndex = (crisisPhraseIndex + 1) % CRISIS_PHRASES.length;
-  renderCrisisPhrase(refs);
 }
 
 function renderObjectiveChoices(refs) {
-  if (!refs?.objectiveChoices) return;
+  if (!refs.objectiveChoices) return;
   refs.objectiveChoices.innerHTML = '';
-  const selectedIds = state.objectives.map(obj => obj.id);
   OBJECTIVE_LIBRARY.forEach(obj => {
     const wrapper = document.createElement('label');
     wrapper.className = 'objective-choice';
     const checkbox = document.createElement('input');
     checkbox.type = 'checkbox';
-    checkbox.dataset.objective = obj.id;
-    checkbox.checked = selectedIds.includes(obj.id);
-    const content = document.createElement('div');
-    const main = document.createElement('p');
-    main.className = 'choice-main';
-    main.textContent = obj.label;
-    const extra = document.createElement('div');
-    extra.className = 'choice-extra';
+    checkbox.value = obj.id;
+    checkbox.checked = state.objectives.some(o => o.id === obj.id);
     const radio = document.createElement('input');
     radio.type = 'radio';
     radio.name = 'primaryObjective';
     radio.value = obj.id;
     radio.disabled = !checkbox.checked;
     radio.checked = state.primaryObjectiveId === obj.id;
+    const content = document.createElement('div');
+    content.appendChild(document.createTextNode(obj.label));
+    const extra = document.createElement('div');
+    extra.className = 'choice-extra';
     const span = document.createElement('span');
     span.textContent = 'Objectif principal';
     extra.append(radio, span);
-    content.append(main, extra);
-    wrapper.append(checkbox, content);
+    wrapper.append(checkbox, content, extra);
     refs.objectiveChoices.appendChild(wrapper);
   });
-  updatePrimaryObjectiveBadge(refs);
-}
-
-function handleObjectiveToggle(input, refs) {
-  const id = input.dataset.objective;
-  const selectedIds = new Set(state.objectives.map(obj => obj.id).filter(Boolean));
-  if (input.checked) {
-    if (selectedIds.size >= 3) {
-      input.checked = false;
-      showToast('Limite de 3 objectifs par semaine.');
-      return;
-    }
-    selectedIds.add(id);
-  } else {
-    selectedIds.delete(id);
-  }
-  const normalized = Array.from(selectedIds);
-  state.objectives = OBJECTIVE_LIBRARY.filter(obj => normalized.includes(obj.id));
-  ensureObjectiveStatus();
-  saveState();
-  renderObjectiveChoices(refs);
-  showToast('Objectifs mis à jour.');
-}
-
-function updatePrimaryObjectiveBadge(refs) {
-  if (!refs?.primaryObjectiveBadge) return;
   const primary = getPrimaryObjective();
-  refs.primaryObjectiveBadge.textContent = primary
+  refs.primaryBadge.textContent = primary
     ? `Objectif principal : ${primary.label}`
     : 'Aucun objectif principal';
 }
 
-function renderTriggerOptions(refs) {
-  if (!refs?.triggerOptions) return;
-  refs.triggerOptions.innerHTML = '';
-  TRIGGER_OPTIONS.forEach(option => {
-    const label = document.createElement('label');
-    label.className = 'trigger-pill';
-    const checkbox = document.createElement('input');
-    checkbox.type = 'checkbox';
-    checkbox.value = option.id;
-    checkbox.checked = state.triggerSelections?.includes(option.id) || false;
-    label.append(checkbox, document.createTextNode(option.label));
-    refs.triggerOptions.appendChild(label);
-  });
+function handleObjectiveToggle(refs, checkbox) {
+  const id = checkbox.value;
+  const selected = new Set(state.objectives.map(obj => obj.id));
+  if (checkbox.checked) {
+    if (selected.size >= 3) {
+      checkbox.checked = false;
+      showToast('Maximum 3 objectifs.');
+      return;
+    }
+    selected.add(id);
+  } else {
+    selected.delete(id);
+  }
+  state.objectives = OBJECTIVE_LIBRARY.filter(obj => selected.has(obj.id));
+  ensureObjectiveStatus();
+  saveState();
+  renderObjectiveChoices(refs);
+  showToast('Objectifs mis à jour.');
 }
 
 function renderStrategyFields(container) {
@@ -651,72 +500,69 @@ function renderStrategyFields(container) {
   }
 }
 
-function renderScripts(container) {
+function renderTriggerOptions(container) {
   if (!container) return;
   container.innerHTML = '';
-  SCRIPT_LIBRARY.forEach(script => {
-    const card = document.createElement('div');
-    card.className = 'script-card';
-    const title = document.createElement('h3');
-    title.textContent = script.title;
-    card.appendChild(title);
-    script.lines.forEach(line => {
-      const row = document.createElement('div');
-      row.className = 'script-line';
-      const p = document.createElement('p');
-      p.textContent = line;
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'btn ghost tiny-btn';
-      btn.textContent = 'Copier';
-      btn.addEventListener('click', () => {
-        copyText(line);
-      });
-      row.append(p, btn);
-      card.appendChild(row);
-    });
-    container.appendChild(card);
+  TRIGGER_OPTIONS.forEach(option => {
+    const label = document.createElement('label');
+    label.className = 'trigger-pill';
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.value = option.id;
+    checkbox.checked = state.triggerSelections.includes(option.id);
+    label.append(checkbox, document.createTextNode(option.label));
+    container.appendChild(label);
   });
 }
 
-function initBilanPage() {
+function populateParentForms(refs) {
+  refs.routineFields.forEach(area => {
+    area.value = state.routines[area.dataset.routine] || '';
+  });
+  refs.rewardInputs.forEach(area => {
+    area.value = (state.rewards[area.dataset.reward] || []).join('\n');
+  });
+  if (refs.plannedNextInput) refs.plannedNextInput.value = state.rewards.next || '';
+  if (refs.triggerOtherInput) refs.triggerOtherInput.value = state.triggerNotes || '';
+}
+
+/* Bilan */
+
+function initBilan() {
   const refs = {
     lockBanner: document.getElementById('bilanLockBanner'),
-    content: document.getElementById('bilanContent'),
     unlockForm: document.getElementById('bilanUnlockForm'),
     pinInput: document.getElementById('bilanPinInput'),
+    content: document.getElementById('bilanContent'),
     lockBtn: document.querySelector('[data-action="lock-bilan"]'),
-    summaryHelps: document.getElementById('summaryHelps'),
-    summaryChallenge: document.getElementById('summaryChallenge'),
-    summaryNext: document.getElementById('summaryNext'),
     childReviewForm: document.getElementById('childReviewForm'),
     parentReviewForm: document.getElementById('parentReviewForm'),
-    childReviewFields: {
+    childFields: {
       helps: document.getElementById('childHelps'),
       proud: document.getElementById('childProud'),
       try: document.getElementById('childTry'),
     },
-    parentReviewFields: {
+    parentFields: {
       risks: document.getElementById('parentRisks'),
       strategies: document.getElementById('parentStrategies'),
       structure: document.getElementById('parentStructure'),
     },
     emotionHistory: document.getElementById('emotionHistory'),
+    summaryHelps: document.getElementById('summaryHelps'),
+    summaryChallenge: document.getElementById('summaryChallenge'),
+    summaryNext: document.getElementById('summaryNext'),
     exportJsonBtn: document.getElementById('exportJsonBtn'),
     exportCsvBtn: document.getElementById('exportCsvBtn'),
     importFile: document.getElementById('importFile'),
   };
 
-  if (!refs.unlockForm) return;
-
-  setBilanLocked(refs, true);
-  populateReviewForms(refs);
   renderEmotionHistory(refs.emotionHistory);
   renderBilanSummary(refs);
+  setBilanLocked(refs, true);
 
-  refs.unlockForm.addEventListener('submit', event => {
+  refs.unlockForm?.addEventListener('submit', event => {
     event.preventDefault();
-    if (refs.pinInput?.value.trim() === state.pin) {
+    if (refs.pinInput.value.trim() === state.pin) {
       setBilanLocked(refs, false);
       refs.pinInput.value = '';
       showToast('Espace bilan déverrouillé.');
@@ -724,55 +570,40 @@ function initBilanPage() {
       showToast('Code incorrect.');
     }
   });
-
   refs.lockBtn?.addEventListener('click', () => setBilanLocked(refs, true));
 
   refs.childReviewForm?.addEventListener('submit', event => {
     event.preventDefault();
-    Object.entries(refs.childReviewFields).forEach(([key, field]) => {
+    Object.entries(refs.childFields).forEach(([key, field]) => {
       state.reviews.child[key] = field.value.trim();
     });
     saveState();
-    showToast('Bilan enfant enregistré.');
     renderBilanSummary(refs);
+    showToast('Bilan enfant enregistré.');
   });
-
   refs.parentReviewForm?.addEventListener('submit', event => {
     event.preventDefault();
-    Object.entries(refs.parentReviewFields).forEach(([key, field]) => {
+    Object.entries(refs.parentFields).forEach(([key, field]) => {
       state.reviews.parent[key] = field.value.trim();
     });
     saveState();
-    showToast('Bilan parent enregistré.');
     renderBilanSummary(refs);
+    showToast('Bilan parent enregistré.');
   });
-
   refs.exportJsonBtn?.addEventListener('click', () => {
-    const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
-    downloadBlob(blob, `pilote-${new Date().toISOString()}.json`);
+    downloadBlob(JSON.stringify(state, null, 2), `pilote-${Date.now()}.json`, 'application/json');
   });
-
   refs.exportCsvBtn?.addEventListener('click', () => {
     const rows = [['type', 'categorie', 'valeur', 'timestamp']];
     state.emotionHistory.forEach(entry => {
-      rows.push(['emotion', EMOTION_LEVELS[entry.level], entry.level, entry.timestamp]);
+      rows.push(['emotion', EMOTION_LABELS[entry.level], entry.level, entry.timestamp]);
     });
     state.pauseHistory.forEach(entry => {
       rows.push(['pause', '', 'pause demandée', entry.timestamp]);
     });
-    state.objectives.forEach(obj => {
-      rows.push(['objectif', obj.label, state.objectiveStatus[obj.id] ? 'coché' : 'en cours', '']);
-    });
-    ['immediate', 'planned', 'symbolic'].forEach(category => {
-      (state.rewards[category] || []).forEach(value => {
-        rows.push(['recompense', category, value, '']);
-      });
-    });
-    const csv = rows.map(row => row.map(safeCsvCell).join(',')).join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
-    downloadBlob(blob, `pilote-${new Date().toISOString()}.csv`);
+    const csv = rows.map(r => r.map(safeCsvCell).join(',')).join('\n');
+    downloadBlob(csv, `pilote-${Date.now()}.csv`, 'text/csv');
   });
-
   refs.importFile?.addEventListener('change', event => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -783,46 +614,21 @@ function initBilanPage() {
         state = mergeState(DEFAULT_STATE, imported);
         ensureObjectiveStatus();
         saveState();
-        populateReviewForms(refs);
         renderEmotionHistory(refs.emotionHistory);
+        renderBilanSummary(refs);
         showToast('Import réussi.');
       } catch (error) {
         console.error(error);
         showToast('Fichier invalide.');
       }
-      event.target.value = '';
     };
     reader.readAsText(file);
   });
 }
 
 function setBilanLocked(refs, locked) {
-  if (refs.lockBanner) {
-    refs.lockBanner.style.display = locked ? 'block' : 'none';
-  }
-  if (refs.content) {
-    refs.content.classList.toggle('is-locked', locked);
-  }
-}
-
-function populateReviewForms(refs) {
-  Object.entries(refs.childReviewFields || {}).forEach(([key, field]) => {
-    if (field) field.value = state.reviews.child[key] || '';
-  });
-  Object.entries(refs.parentReviewFields || {}).forEach(([key, field]) => {
-    if (field) field.value = state.reviews.parent[key] || '';
-  });
-}
-
-function renderBilanSummary(refs) {
-  if (!refs.summaryHelps || !refs.summaryChallenge || !refs.summaryNext) return;
-  refs.summaryHelps.textContent =
-    state.reviews.child.helps || state.reviews.parent.strategies || 'À compléter.';
-  refs.summaryChallenge.textContent =
-    state.reviews.parent.risks || state.reviews.child.try || 'À compléter.';
-  const primary = getPrimaryObjective();
-  const next = primary?.label || state.focus.skill || 'À définir.';
-  refs.summaryNext.textContent = next;
+  refs.lockBanner.style.display = locked ? 'block' : 'none';
+  refs.content.classList.toggle('is-locked', locked);
 }
 
 function renderEmotionHistory(list) {
@@ -836,21 +642,35 @@ function renderEmotionHistory(list) {
   }
   [...state.emotionHistory].slice(-15).reverse().forEach(entry => {
     const li = document.createElement('li');
-    const label = document.createElement('span');
-    label.textContent = `${entry.level} – ${EMOTION_LEVELS[entry.level]}`;
-    const time = document.createElement('span');
-    time.textContent = formatTime(entry.timestamp);
-    li.append(label, time);
+    li.textContent = `${EMOTION_LABELS[entry.level]} – ${formatDate(entry.timestamp)}`;
     list.appendChild(li);
   });
 }
 
-function addTokens(amount, reason) {
+function renderBilanSummary(refs) {
+  refs.summaryHelps.textContent =
+    state.reviews.child.helps || state.reviews.parent.strategies || 'À compléter.';
+  refs.summaryChallenge.textContent =
+    state.reviews.parent.risks || state.reviews.child.try || 'À compléter.';
+  const primary = getPrimaryObjective();
+  refs.summaryNext.textContent = primary?.label || state.focus.skill || 'À définir.';
+}
+
+/* Shared helpers */
+
+function addTokens(amount, message) {
   state.tokens += amount;
-  if (reason) {
-    showToast(`${reason} (+${amount} jeton)`);
-  }
   saveState();
+  if (message) showToast(`${message} (+${amount} jeton)`);
+}
+
+function showToast(text) {
+  const toast = document.getElementById('toast');
+  if (!toast) return;
+  toast.textContent = text;
+  toast.classList.add('visible');
+  clearTimeout(showToast.timeout);
+  showToast.timeout = setTimeout(() => toast.classList.remove('visible'), 2600);
 }
 
 function saveState() {
@@ -860,70 +680,38 @@ function saveState() {
 function loadState() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) {
-      return deepClone(DEFAULT_STATE);
-    }
-    const parsed = JSON.parse(raw);
-    const merged = mergeState(DEFAULT_STATE, parsed);
-    if (!merged.triggerNotes && merged.triggers) {
-      merged.triggerNotes = merged.triggers;
-    }
-    if (typeof merged.triggerSelections === 'undefined') {
-      merged.triggerSelections = [];
-    }
-    if (typeof merged.primaryObjectiveId === 'undefined') {
-      merged.primaryObjectiveId = merged.focus?.skill
-        ? OBJECTIVE_LIBRARY.find(obj => obj.label === merged.focus.skill)?.id || null
-        : null;
-    }
-    return merged;
+    if (!raw) return structuredClone(DEFAULT_STATE);
+    return mergeState(DEFAULT_STATE, JSON.parse(raw));
   } catch (error) {
-    console.warn('Impossible de charger les données, retour aux valeurs par défaut.', error);
-    return deepClone(DEFAULT_STATE);
+    console.error('Chargement impossible, retour aux valeurs par défaut.', error);
+    return structuredClone(DEFAULT_STATE);
   }
 }
 
 function mergeState(base, override) {
-  if (!override || typeof override !== 'object') {
-    return deepClone(base);
-  }
-  const result = Array.isArray(base) ? [] : { ...base };
+  if (!override || typeof override !== 'object') return structuredClone(base);
+  const result = Array.isArray(base) ? [...base] : { ...base };
   Object.keys(base).forEach(key => {
     if (Array.isArray(base[key])) {
       result[key] = Array.isArray(override[key]) ? override[key] : base[key];
     } else if (typeof base[key] === 'object' && base[key] !== null) {
       result[key] = mergeState(base[key], override[key] || {});
     } else {
-      result[key] = typeof override[key] !== 'undefined' ? override[key] : base[key];
-    }
-  });
-  Object.keys(override).forEach(key => {
-    if (typeof result[key] === 'undefined') {
-      result[key] = override[key];
+      result[key] = typeof override[key] === 'undefined' ? base[key] : override[key];
     }
   });
   return result;
 }
 
-function deepClone(obj) {
+function structuredClone(obj) {
   return JSON.parse(JSON.stringify(obj));
 }
 
-function splitLines(value) {
-  return value
+function splitLines(text) {
+  return text
     .split(/\n|,/)
-    .map(line => line.trim())
+    .map(str => str.trim())
     .filter(Boolean);
-}
-
-function downloadBlob(blob, filename) {
-  const link = document.createElement('a');
-  link.href = URL.createObjectURL(blob);
-  link.download = filename;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(link.href);
 }
 
 function safeCsvCell(value) {
@@ -934,56 +722,41 @@ function safeCsvCell(value) {
   return cell;
 }
 
-function formatTime(timestamp) {
-  const date = new Date(timestamp);
+function downloadBlob(data, filename, type) {
+  const blob = new Blob([data], { type });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(link.href);
+}
+
+function formatDate(ts) {
+  const date = new Date(ts);
   return new Intl.DateTimeFormat('fr-FR', {
     day: '2-digit',
-    month: '2-digit',
+    month: 'short',
     hour: '2-digit',
     minute: '2-digit',
   }).format(date);
 }
 
 function ensureObjectiveStatus() {
-  if (!state.objectiveStatus) {
-    state.objectiveStatus = {};
-  }
-  state.objectives = state.objectives.map(obj => {
-    if (obj?.id) return obj;
-    const match = OBJECTIVE_LIBRARY.find(item => item.label === obj?.label);
-    return match ? { id: match.id, label: match.label } : obj;
-  });
-  if (state.objectives.length > 3) {
-    state.objectives = state.objectives.slice(0, 3);
-  }
+  if (!state.objectiveStatus) state.objectiveStatus = {};
+  state.objectives = state.objectives
+    .map(obj => OBJECTIVE_LIBRARY.find(item => item.id === obj.id) || obj)
+    .slice(0, 3);
   state.objectives.forEach(obj => {
-    if (typeof state.objectiveStatus[obj.id] === 'undefined') {
-      state.objectiveStatus[obj.id] = false;
-    }
+    if (typeof state.objectiveStatus[obj.id] === 'undefined') state.objectiveStatus[obj.id] = false;
   });
-  Object.keys(state.objectiveStatus).forEach(key => {
-    if (!state.objectives.find(obj => obj.id === key)) {
-      delete state.objectiveStatus[key];
-    }
-  });
-  ensurePrimaryObjective();
-}
-
-function ensurePrimaryObjective() {
-  const selectedIds = state.objectives.map(obj => obj.id);
-  if (!selectedIds.includes(state.primaryObjectiveId)) {
-    state.primaryObjectiveId = selectedIds[0] || null;
-  }
-  if (state.primaryObjectiveId) {
-    const primary = getPrimaryObjective();
-    if (primary) {
-      state.focus = { skill: primary.label, notes: '' };
-    }
+  if (!state.objectives.find(obj => obj.id === state.primaryObjectiveId)) {
+    state.primaryObjectiveId = state.objectives[0]?.id || null;
   }
 }
 
 function getPrimaryObjective() {
-  if (!state.primaryObjectiveId) return null;
   return (
     OBJECTIVE_LIBRARY.find(obj => obj.id === state.primaryObjectiveId) ||
     state.objectives.find(obj => obj.id === state.primaryObjectiveId) ||
@@ -991,39 +764,8 @@ function getPrimaryObjective() {
   );
 }
 
-function copyText(text) {
-  if (navigator.clipboard?.writeText) {
-    navigator.clipboard.writeText(text).then(
-      () => showToast('Phrase copiée.'),
-      () => fallbackCopy(text)
-    );
-  } else {
-    fallbackCopy(text);
-  }
-}
-
-function fallbackCopy(text) {
-  const temp = document.createElement('textarea');
-  temp.value = text;
-  temp.setAttribute('readonly', '');
-  temp.style.position = 'absolute';
-  temp.style.left = '-9999px';
-  document.body.appendChild(temp);
-  temp.select();
-  try {
-    document.execCommand('copy');
-    showToast('Phrase copiée.');
-  } catch (error) {
-    console.warn('Copy failed', error);
-  }
-  document.body.removeChild(temp);
-}
-
-function showToast(message) {
-  const toast = document.getElementById('toast');
-  if (!toast) return;
-  toast.textContent = message;
-  toast.classList.add('visible');
-  clearTimeout(showToast.timeout);
-  showToast.timeout = setTimeout(() => toast.classList.remove('visible'), 3000);
+function renderFocusSummary(el) {
+  if (!el) return;
+  const primary = getPrimaryObjective();
+  el.textContent = primary ? primary.label : 'Ton parent choisira l\'objectif ici.';
 }
