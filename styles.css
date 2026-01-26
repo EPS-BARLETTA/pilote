@@ -291,6 +291,10 @@ body[data-page="child"] .container {
   margin-top: 12px;
 }
 
+.carnet-summary {
+  margin: 0;
+}
+
 .carnet summary {
   cursor: pointer;
   font-weight: 600;
