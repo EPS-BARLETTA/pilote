@@ -6,17 +6,25 @@
   <title>PILOTE – Tour de contrôle</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
+
 <body data-page="parent">
   <main class="container dashboard">
     <header class="card page-hero">
       <p class="eyebrow">Espace parent</p>
       <h1>Tour de contrôle</h1>
       <p>Des repères concrets pour co-réguler sans culpabiliser.</p>
-      <button class="btn ghost" data-action="lock-parent" type="button">Verrouiller</button>
+
+      <nav class="row" aria-label="Navigation">
+        <a class="btn ghost" href="index.html">← Accueil</a>
+        <a class="btn ghost" href="bilan.html">Temps de compréhension</a>
+        <button class="btn ghost" data-action="lock-parent" type="button">Verrouiller</button>
+      </nav>
     </header>
 
     <section class="card crisis-block">
       <h2>Mode crise (30 secondes)</h2>
+      <p class="micro-copy">Objectif : sécurité + baisse du moteur. Pas de négociation pendant la montée.</p>
+
       <div class="grid">
         <article class="card nested-card">
           <p class="eyebrow">Phrase à dire</p>
@@ -27,12 +35,13 @@
         <article class="card nested-card">
           <p class="eyebrow">Action immédiate</p>
           <p id="crisisDo" class="crisis-text"></p>
-          <p class="micro-copy">On ne règle rien pendant la pause.</p>
+          <p class="micro-copy">Une seule consigne courte. Voix basse. Stimulations ↓</p>
         </article>
 
         <article class="card nested-card">
           <p class="eyebrow">Après la pause</p>
           <p id="crisisAfter" class="crisis-text"></p>
+          <p class="micro-copy">Réparer doucement → puis revenir au petit pas.</p>
         </article>
       </div>
     </section>
@@ -84,10 +93,23 @@
           <label>Routine du soir</label>
           <textarea data-routine="evening" rows="3"></textarea>
 
+          <hr />
+
+          <h3>Plan B (si ça monte)</h3>
+          <p class="micro-copy">Une alternative simple, déjà validée, pour éviter l’escalade.</p>
+
+          <label>Plan B matin</label>
+          <textarea data-routine="planBMorning" rows="2" placeholder="Ex : 1 étape + pause + retour"></textarea>
+
+          <label>Plan B devoirs</label>
+          <textarea data-routine="planBHomework" rows="2"></textarea>
+
+          <label>Plan B soir</label>
+          <textarea data-routine="planBEvening" rows="2"></textarea>
+
           <button type="submit">Sauvegarder</button>
         </form>
       </article>
-
       <article class="card">
         <h2>Stratégies proposées</h2>
         <form id="strategyForm" class="stack-form">
