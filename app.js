@@ -134,13 +134,79 @@ const DEFAULT_STATE = {
     child: { helps: '', proud: '', try: '' },
     parent: { risks: '', strategies: '', structure: '' },
   },
+
+  landing: {
+    childEmoji: '🚀',
+    selectedDate: null,
+    weekAnchor: null,
+    calendar: {},
+  },
 };
+
+const HELP_CONTENT = {
+  default: `
+    <h2>🧭 PILOTE — Mode d’emploi</h2>
+    <p>Une application simple pour aider un enfant à se réguler et un parent à rester au clair. Tout est local, sans compte.</p>
+    <section>
+      <h3>🏠 Accueil – « Choisis ton espace »</h3>
+      <p>Trois portes : 👧 Enfant (mon cockpit), 🧑‍🧑‍🧒 Parent (tour de contrôle) et 🤝 Bilan (à deux, quand tout est calme).</p>
+    </section>
+    <section>
+      <h3>🗓️ Calendrier apaisé</h3>
+      <ul>
+        <li>Ajoute des étapes avec emoji, heure (début/fin) et description personalisable.</li>
+        <li>Duplique ta journée sur la semaine, un mois ou plusieurs mois en cochant simplement les jours concernés.</li>
+        <li>Bouton « Enregistrer à l’année » pour appliquer le même motif sur les 12 mois.</li>
+        <li>Boutons Exporter / Importer pour sauvegarder ton calendrier (JSON local).</li>
+      </ul>
+    </section>
+    <section>
+      <h3>👧 Enfant – Mon cockpit</h3>
+      <p>Baromètre 1 à 5 pour dire où en est le moteur. À 4/5 : pause guidée, outils (max 3) + jetons symboliques, sphère de respiration, carnet (objectifs, jetons, badges, récompense du jour).</p>
+    </section>
+    <section>
+      <h3>🧑‍🧑‍🧒 Parent – Tour de contrôle</h3>
+      <p>Protégé par PIN. On y trouve :</p>
+      <ul>
+        <li>Mode crise (dire/faire/après en 3 lignes)</li>
+        <li>Objectifs (1 principal + 2 max secondaires)</li>
+        <li>Scripts avant / pendant / après (copiables)</li>
+        <li>Routines matin / devoirs / soir + plan B</li>
+        <li>Stratégies, déclencheurs, récompenses</li>
+      </ul>
+    </section>
+    <section>
+      <h3>🤝 Bilan – Temps de compréhension</h3>
+      <p>Verrouillé par PIN. 3 questions pour l’enfant (ce qui aide, fierté, piste), 3 pour l’adulte (risques, stratégies, structure). Historique émotionnel, export JSON/CSV.</p>
+    </section>
+    <section>
+      <h3>📱 Compatibilité & philosophie</h3>
+      <p>Smartphone / tablette / ordinateur, hors ligne, ajoutable à l’écran d’accueil. Pas de diagnostic, pas de jugement : relation & régulation avant la performance.</p>
+    </section>
+  `,
+};
+
+const WEEKDAY_SHORT_FORMAT = new Intl.DateTimeFormat('fr-FR', { weekday: 'short' });
+const DAY_MONTH_FORMAT = new Intl.DateTimeFormat('fr-FR', { day: '2-digit', month: 'short' });
+const DAY_FULL_FORMAT = new Intl.DateTimeFormat('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+const TASK_COLOR_PALETTE = [
+  { bg: '#f6eee7', border: '#eedccd' },
+  { bg: '#eef5f3', border: '#d9ebe5' },
+  { bg: '#eef1fb', border: '#d7def4' },
+  { bg: '#f5eef8', border: '#e4d9ec' },
+  { bg: '#f3f6ea', border: '#e0e8cf' },
+  { bg: '#fdf1ec', border: '#f2dcd1' },
+];
 
 let state = loadState();
 let crisisIndex = 0;
 
 let breathInterval = null;
 let lastOpenedModal = null;
+let landingSelectedDate = null;
+let landingWeekAnchor = null;
+let landingAutoLabel = '';
+let helpModal = null;
 
 /* =========================================================
    Boot / router
@@ -152,9 +218,16 @@ document.addEventListener('DOMContentLoaded', () => {
   const path = (location.pathname || '').toLowerCase();
   const page =
     pageAttr ||
-    (path.includes('enfant') ? 'child' : path.includes('parent') ? 'parent' : path.includes('bilan') ? 'bilan' : '');
+    (path.includes('enfant')
+      ? 'child'
+      : path.includes('parent')
+      ? 'parent'
+      : path.includes('bilan')
+      ? 'bilan'
+      : 'landing');
 
   ensureObjectiveStatus();
+  ensureLandingDefaults();
   saveState();
 
   // Global: Escape ferme la modale la plus récente
@@ -167,13 +240,685 @@ document.addEventListener('DOMContentLoaded', () => {
   if (page === 'child') initChild();
   if (page === 'parent') initParent();
   if (page === 'bilan') initBilan();
+  if (page === 'landing') initLanding();
 });
+
+/* =========================================================
+   Landing
+   ========================================================= */
+
+function initLanding() {
+  ensureLandingDefaults();
+  setupHelpButton('landing');
+
+  const refs = {
+    childEmojiSelect: document.getElementById('childEmojiSelect'),
+    childEmojiDisplay: document.getElementById('childEmojiDisplay'),
+    week: document.getElementById('calendarWeek'),
+    weekPrev: document.getElementById('weekPrev'),
+    weekNext: document.getElementById('weekNext'),
+    dayLabel: document.getElementById('selectedDayLabel'),
+    dayList: document.getElementById('dayTaskList'),
+    dayFullscreen: document.getElementById('dayFullscreen'),
+    dayFullscreenLabel: document.getElementById('fullscreenDayLabel'),
+    dayFullscreenList: document.getElementById('dayTaskFullscreenList'),
+    dayFullscreenClose: document.getElementById('closeDayFullscreen'),
+    openDayFullscreen: document.getElementById('openDayFullscreen'),
+    openCopyDay: document.getElementById('openCopyDay'),
+    form: document.getElementById('dayTaskForm'),
+    taskEmoji: document.getElementById('taskEmoji'),
+    taskTime: document.getElementById('taskTime'),
+    taskEndTime: document.getElementById('taskEndTime'),
+    taskLabel: document.getElementById('taskLabel'),
+    customEmojiFields: document.getElementById('customEmojiFields'),
+    customEmojiInput: document.getElementById('customEmojiInput'),
+    copyModal: document.getElementById('copyDayModal'),
+    copyWeekTargets: document.getElementById('copyWeekTargets'),
+    copyMonthList: document.getElementById('copyMonthList'),
+    copyMonthInput: document.getElementById('copyMonthInput'),
+    addCopyMonth: document.getElementById('addCopyMonth'),
+    copyForm: document.getElementById('copyDayForm'),
+    copyCancel: document.getElementById('cancelCopyDay'),
+    copyClose: document.getElementById('closeCopyDay'),
+    applyYearButton: document.getElementById('applyYearButton'),
+    exportCalendar: document.getElementById('exportCalendar'),
+    importCalendar: document.getElementById('importCalendar'),
+    importCalendarInput: document.getElementById('importCalendarInput'),
+  };
+
+  const handleTaskDelete = e => {
+    const btn = e.target.closest('button[data-delete-task]');
+    if (!btn?.dataset?.deleteTask) return;
+    removeLandingTask(landingSelectedDate, btn.dataset.deleteTask);
+    renderLandingWeek(refs);
+    renderLandingDay(refs);
+  };
+
+  const handleTaskToggle = e => {
+    const checkbox = e.target.closest('input[data-task-toggle]');
+    if (!checkbox?.dataset?.taskToggle) return;
+    toggleLandingTaskCompletion(landingSelectedDate, checkbox.dataset.taskToggle, checkbox.checked);
+    renderLandingWeek(refs);
+    renderLandingDay(refs);
+  };
+
+  const handleLandingEsc = e => {
+    if (e.key !== 'Escape') return;
+    if (refs.dayFullscreen && !refs.dayFullscreen.hidden) closeLandingDayFullscreen(refs);
+    if (refs.copyModal && !refs.copyModal.hidden) closeCopyDayModal(refs);
+  };
+
+  const todayKey = toDateKey(new Date());
+  landingSelectedDate = state.landing.selectedDate || todayKey;
+  const anchorDate =
+    parseDateKey(state.landing.weekAnchor) || parseDateKey(landingSelectedDate) || new Date();
+  landingWeekAnchor = startOfWeek(anchorDate);
+  ensureLandingWeekContainsSelection();
+  state.landing.weekAnchor = toDateKey(landingWeekAnchor);
+  if (!state.landing.selectedDate) state.landing.selectedDate = landingSelectedDate;
+  saveState();
+
+  if (refs.childEmojiDisplay) refs.childEmojiDisplay.textContent = state.landing.childEmoji || '🚀';
+  if (refs.childEmojiSelect) {
+    refs.childEmojiSelect.value = state.landing.childEmoji || '🚀';
+    refs.childEmojiSelect.addEventListener('change', e => {
+      state.landing.childEmoji = e.target.value;
+      if (refs.childEmojiDisplay) refs.childEmojiDisplay.textContent = state.landing.childEmoji;
+      saveState();
+    });
+  }
+
+  renderLandingWeek(refs);
+  renderLandingDay(refs);
+  updateCustomEmojiFields(refs);
+  autoFillTaskLabel(refs);
+
+  refs.week?.addEventListener('click', e => {
+    const card = e.target.closest('.calendar-day-card');
+    if (!card?.dataset?.date) return;
+    const clickedDate = card.dataset.date;
+    const wasSelected = clickedDate === landingSelectedDate;
+    landingSelectedDate = clickedDate;
+    state.landing.selectedDate = landingSelectedDate;
+    ensureLandingWeekContainsSelection();
+    state.landing.weekAnchor = toDateKey(landingWeekAnchor);
+    saveState();
+    renderLandingWeek(refs);
+    renderLandingDay(refs);
+    if (wasSelected) openLandingDayFullscreen(refs);
+  });
+
+  refs.weekPrev?.addEventListener('click', () => shiftLandingWeek(-1, refs));
+  refs.weekNext?.addEventListener('click', () => shiftLandingWeek(1, refs));
+
+  refs.form?.addEventListener('submit', e => {
+    e.preventDefault();
+    const selectedEmoji = (refs.taskEmoji?.value || '⭐️').trim();
+    let emoji = selectedEmoji;
+    if (selectedEmoji === 'custom') {
+      emoji = (refs.customEmojiInput?.value || '').trim();
+      if (!emoji) {
+        alert('Choisis un emoji pour personnaliser cette activité.');
+        return;
+      }
+    }
+    const time = refs.taskTime?.value || '';
+    const endTime = refs.taskEndTime?.value || '';
+    if (endTime && time && endTime < time) {
+      alert('L’heure de fin doit être après l’heure de début.');
+      return;
+    }
+    const label = (refs.taskLabel?.value || '').trim();
+    if (!label) {
+      alert('Ajoute un petit descriptif pour cette étape.');
+      return;
+    }
+
+    const targetDate = landingSelectedDate || todayKey;
+    addLandingTask(targetDate, { emoji, time, endTime, label });
+    refs.form.reset();
+    if (refs.taskEmoji) refs.taskEmoji.value = selectedEmoji === 'custom' ? 'custom' : selectedEmoji;
+    if (selectedEmoji === 'custom' && refs.customEmojiInput) refs.customEmojiInput.value = '';
+    landingAutoLabel = '';
+    updateCustomEmojiFields(refs);
+    autoFillTaskLabel(refs);
+    refs.taskEndTime && (refs.taskEndTime.value = '');
+    renderLandingWeek(refs);
+    renderLandingDay(refs);
+  });
+
+  refs.taskEmoji?.addEventListener('change', () => {
+    updateCustomEmojiFields(refs);
+    autoFillTaskLabel(refs);
+  });
+
+  [refs.dayList, refs.dayFullscreenList].forEach(list => {
+    list?.addEventListener('click', handleTaskDelete);
+    list?.addEventListener('change', handleTaskToggle);
+  });
+
+  refs.openDayFullscreen?.addEventListener('click', () => openLandingDayFullscreen(refs));
+  refs.dayFullscreenClose?.addEventListener('click', () => closeLandingDayFullscreen(refs));
+  refs.dayFullscreen?.addEventListener('click', e => {
+    if (e.target === refs.dayFullscreen) closeLandingDayFullscreen(refs);
+  });
+  refs.openCopyDay?.addEventListener('click', () => openCopyDayModal(refs));
+  refs.copyClose?.addEventListener('click', () => closeCopyDayModal(refs));
+  refs.copyCancel?.addEventListener('click', () => closeCopyDayModal(refs));
+  refs.copyModal?.addEventListener('click', e => {
+    if (e.target === refs.copyModal) closeCopyDayModal(refs);
+  });
+
+  refs.copyForm?.addEventListener('submit', e => {
+    e.preventDefault();
+    handleCopyApply(refs);
+  });
+
+  refs.applyYearButton?.addEventListener('click', () => handleCopyApply(refs, { fullYear: true }));
+
+  refs.addCopyMonth?.addEventListener('click', () => {
+    const value = refs.copyMonthInput?.value;
+    if (!value) {
+      alert('Choisis un mois à ajouter.');
+      return;
+    }
+    addCopyMonthBlock(refs, value);
+    if (refs.copyMonthInput) refs.copyMonthInput.value = nextMonthValue(value);
+  });
+
+  refs.exportCalendar?.addEventListener('click', () => exportLandingCalendar());
+  refs.importCalendar?.addEventListener('click', () => refs.importCalendarInput?.click());
+  refs.importCalendarInput?.addEventListener('change', e => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    importLandingCalendar(file, refs);
+    e.target.value = '';
+  });
+
+  document.addEventListener('keydown', handleLandingEsc);
+}
+
+function shiftLandingWeek(delta, refs) {
+  const selected = parseDateKey(landingSelectedDate) || new Date();
+  selected.setDate(selected.getDate() + delta * 7);
+  landingSelectedDate = toDateKey(selected);
+  landingWeekAnchor = startOfWeek(selected);
+  state.landing.selectedDate = landingSelectedDate;
+  state.landing.weekAnchor = toDateKey(landingWeekAnchor);
+  saveState();
+  renderLandingWeek(refs);
+  renderLandingDay(refs);
+}
+
+function renderLandingWeek(refs) {
+  if (!refs.week) return;
+  const weekDates = getWeekDates(landingWeekAnchor || new Date());
+  const html = weekDates
+    .map(date => {
+      const key = toDateKey(date);
+      const tasks = state.landing.calendar[key] || [];
+      const summary = tasks.slice(0, 3).map(task => task.emoji).join(' ');
+      const dayName = capitalizeLabel(WEEKDAY_SHORT_FORMAT.format(date));
+      return `<button type="button" class="calendar-day-card${
+        key === landingSelectedDate ? ' is-selected' : ''
+      }" data-date="${key}">
+        <strong>${dayName}</strong>
+        <small>${DAY_MONTH_FORMAT.format(date)}</small>
+        <span class="calendar-day-emojis">${summary || '&nbsp;'}</span>
+      </button>`;
+    })
+    .join('');
+  refs.week.innerHTML = html;
+}
+
+function renderLandingDay(refs) {
+  if (!refs.dayLabel) return;
+  const date = parseDateKey(landingSelectedDate) || new Date();
+  const label = capitalizeLabel(DAY_FULL_FORMAT.format(date));
+  refs.dayLabel.textContent = label;
+  if (refs.dayFullscreenLabel) refs.dayFullscreenLabel.textContent = label;
+
+  const tasks = [...(state.landing.calendar[landingSelectedDate] || [])]
+    .map(task => ({ ...task, completed: Boolean(task.completed) }))
+    .sort((a, b) => (a.time || '').localeCompare(b.time || ''));
+
+  renderLandingTasks(refs.dayList, tasks);
+  renderLandingTasks(refs.dayFullscreenList, tasks);
+}
+
+function renderLandingTasks(container, tasks) {
+  if (!container) return;
+  container.innerHTML = '';
+
+  if (!tasks.length) {
+    const empty = document.createElement('li');
+    empty.className = 'calendar-task empty';
+    empty.textContent = 'Aucune étape enregistrée pour cette journée.';
+    container.appendChild(empty);
+    return;
+  }
+
+  tasks.forEach(task => {
+    const li = document.createElement('li');
+    li.className = 'calendar-task';
+    if (task.completed) li.classList.add('is-completed');
+    li.dataset.taskId = task.id;
+    const color = getTaskColor(task);
+    li.style.setProperty('--task-bg', color.bg);
+    li.style.setProperty('--task-border', color.border);
+
+    const checkLabel = document.createElement('label');
+    checkLabel.className = 'calendar-task-checkbox';
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.checked = Boolean(task.completed);
+    checkbox.dataset.taskToggle = task.id;
+    checkbox.setAttribute(
+      'aria-label',
+      `${checkbox.checked ? 'Décocher' : 'Valider'} ${task.label || 'cette étape'}`
+    );
+
+    const checkMark = document.createElement('span');
+    checkMark.textContent = checkbox.checked ? '✅' : '◻️';
+
+    checkLabel.append(checkbox, checkMark);
+
+    const info = document.createElement('div');
+    info.className = 'calendar-task-info';
+
+    const emoji = document.createElement('span');
+    emoji.className = 'calendar-task-emoji';
+    emoji.textContent = task.emoji || '⭐️';
+
+    const textWrap = document.createElement('div');
+    textWrap.className = 'calendar-task-text';
+
+    const timeEl = document.createElement('span');
+    timeEl.className = 'calendar-task-time';
+    timeEl.textContent = formatTaskTime(task);
+
+    const labelEl = document.createElement('span');
+    labelEl.className = 'calendar-task-label';
+    labelEl.textContent = task.label;
+
+    textWrap.append(timeEl, labelEl);
+    info.append(emoji, textWrap);
+
+    const removeBtn = document.createElement('button');
+    removeBtn.type = 'button';
+    removeBtn.dataset.deleteTask = task.id;
+    removeBtn.setAttribute('aria-label', `Supprimer ${task.label || 'cette étape'}`);
+    removeBtn.textContent = '×';
+
+    li.append(checkLabel, info, removeBtn);
+    container.appendChild(li);
+  });
+}
+
+function openLandingDayFullscreen(refs) {
+  if (!refs?.dayFullscreen) return;
+  refs.dayFullscreen.hidden = false;
+  refs.dayFullscreen.setAttribute('aria-hidden', 'false');
+  document.body.classList.add('no-scroll');
+  renderLandingDay(refs);
+  const focusTarget = refs.dayFullscreen.querySelector('button, [href], input, select, textarea');
+  focusTarget?.focus?.();
+}
+
+function formatTaskTime(task) {
+  if (task.time && task.endTime) return `${task.time} – ${task.endTime}`;
+  if (task.time) return task.time;
+  if (task.endTime) return task.endTime;
+  return '—';
+}
+
+function autoFillTaskLabel(refs) {
+  if (!refs?.taskLabel || !refs.taskEmoji) return;
+  const option = refs.taskEmoji.selectedOptions?.[0];
+  if (!option) return;
+  if (option.value === 'custom') {
+    if (!refs.taskLabel.value || refs.taskLabel.value === landingAutoLabel) {
+      refs.taskLabel.value = '';
+    }
+    landingAutoLabel = '';
+    return;
+  }
+  const text = option.textContent?.trim();
+  if (!text) return;
+  refs.taskLabel.value = text;
+  landingAutoLabel = text;
+}
+
+function getTaskColor(task) {
+  const seed = `${task.emoji || ''}|${task.label || ''}|${task.id || ''}`;
+  const hash = stringHash(seed);
+  const paletteIndex = Math.abs(hash) % TASK_COLOR_PALETTE.length;
+  return TASK_COLOR_PALETTE[paletteIndex];
+}
+
+function stringHash(text) {
+  let hash = 0;
+  for (let i = 0; i < text.length; i += 1) {
+    hash = (hash << 5) - hash + text.charCodeAt(i);
+    hash |= 0;
+  }
+  return hash;
+}
+
+function setupHelpButton(page) {
+  const content = HELP_CONTENT[page] || HELP_CONTENT.default;
+  if (!content) return;
+  let btn = document.querySelector('.help-button');
+  if (!btn) {
+    btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'help-button';
+    btn.textContent = '❓ Aide';
+    document.body.appendChild(btn);
+  }
+  btn.dataset.helpPage = page;
+  btn.onclick = () => openHelpModal(page);
+}
+
+function ensureHelpModal() {
+  if (helpModal) return helpModal;
+  const modal = document.createElement('div');
+  modal.className = 'modal help-modal';
+  modal.hidden = true;
+  modal.setAttribute('role', 'dialog');
+  modal.setAttribute('aria-modal', 'true');
+  modal.setAttribute('aria-label', 'Mode d’emploi PILOTE');
+
+  const panel = document.createElement('div');
+  panel.className = 'help-panel';
+
+  const closeBtn = document.createElement('button');
+  closeBtn.type = 'button';
+  closeBtn.className = 'day-fullscreen-close';
+  closeBtn.setAttribute('aria-label', 'Fermer l’aide');
+  closeBtn.textContent = '×';
+
+  const body = document.createElement('div');
+  body.className = 'help-panel-body';
+
+  panel.append(closeBtn, body);
+  modal.append(panel);
+  document.body.appendChild(modal);
+
+  closeBtn.addEventListener('click', closeHelpModal);
+  modal.addEventListener('click', e => {
+    if (e.target === modal) closeHelpModal();
+  });
+
+  helpModal = modal;
+  return modal;
+}
+
+function openHelpModal(page) {
+  const modal = ensureHelpModal();
+  const body = modal.querySelector('.help-panel-body');
+  body.innerHTML = HELP_CONTENT[page] || HELP_CONTENT.default || '<p>Aucune aide disponible.</p>';
+  openModal(modal);
+}
+
+function closeHelpModal() {
+  if (!helpModal) return;
+  closeModal(helpModal);
+}
+
+function closeLandingDayFullscreen(refs) {
+  if (!refs?.dayFullscreen) return;
+  refs.dayFullscreen.hidden = true;
+  refs.dayFullscreen.setAttribute('aria-hidden', 'true');
+  document.body.classList.remove('no-scroll');
+}
+
+function updateCustomEmojiFields(refs) {
+  if (!refs?.customEmojiFields || !refs.taskEmoji) return;
+  const isCustom = refs.taskEmoji.value === 'custom';
+  refs.customEmojiFields.classList.toggle('is-visible', isCustom);
+  refs.customEmojiFields.setAttribute('aria-hidden', isCustom ? 'false' : 'true');
+}
+
+function openCopyDayModal(refs) {
+  if (!refs?.copyModal) return;
+  renderCopyWeekTargets(refs);
+  resetCopyMonthBlocks(refs);
+  refs.copyModal.hidden = false;
+  refs.copyModal.setAttribute('aria-hidden', 'false');
+  document.body.classList.add('no-scroll');
+  const focusTarget = refs.copyModal.querySelector('input, button, select, textarea');
+  focusTarget?.focus?.();
+}
+
+function closeCopyDayModal(refs) {
+  if (!refs?.copyModal) return;
+  refs.copyModal.hidden = true;
+  refs.copyModal.setAttribute('aria-hidden', 'true');
+  document.body.classList.remove('no-scroll');
+  refs.copyForm?.reset?.();
+  refs.copyMonthList && (refs.copyMonthList.innerHTML = '');
+}
+
+function renderCopyWeekTargets(refs) {
+  if (!refs?.copyWeekTargets) return;
+  const weekDates = getWeekDates(landingWeekAnchor || new Date());
+  refs.copyWeekTargets.innerHTML = '';
+  weekDates.forEach(date => {
+    const key = toDateKey(date);
+    const label = capitalizeLabel(WEEKDAY_SHORT_FORMAT.format(date));
+    const dayLabel = DAY_MONTH_FORMAT.format(date);
+    const wrapper = document.createElement('label');
+    wrapper.className = 'copy-day-target';
+
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.dataset.date = key;
+    checkbox.disabled = key === landingSelectedDate;
+
+    const text = document.createElement('div');
+    const strong = document.createElement('strong');
+    strong.textContent = label;
+    const small = document.createElement('small');
+    small.textContent = dayLabel;
+    text.append(strong, small);
+
+    wrapper.append(checkbox, text);
+    refs.copyWeekTargets.appendChild(wrapper);
+  });
+}
+
+function resetCopyMonthBlocks(refs) {
+  if (!refs?.copyMonthList) return;
+  refs.copyMonthList.innerHTML = '';
+  const selected = parseDateKey(landingSelectedDate) || new Date();
+  const monthValue = `${selected.getFullYear()}-${String(selected.getMonth() + 1).padStart(2, '0')}`;
+  if (refs.copyMonthInput) refs.copyMonthInput.value = monthValue;
+  addCopyMonthBlock(refs, monthValue, false);
+}
+
+const WEEKDAY_CHOICES = [
+  { value: 1, label: 'Lundi', short: 'Lu' },
+  { value: 2, label: 'Mardi', short: 'Ma' },
+  { value: 3, label: 'Mercredi', short: 'Me' },
+  { value: 4, label: 'Jeudi', short: 'Je' },
+  { value: 5, label: 'Vendredi', short: 'Ve' },
+  { value: 6, label: 'Samedi', short: 'Sa' },
+  { value: 0, label: 'Dimanche', short: 'Di' },
+];
+
+function addCopyMonthBlock(refs, monthValue, selectAll = false) {
+  if (!refs?.copyMonthList || !monthValue) return;
+  const [year, month] = (monthValue || '').split('-').map(Number);
+  if (!year || !month) return;
+
+  const exists = Array.from(refs.copyMonthList.querySelectorAll('.copy-month-block input[type="month"]')).some(
+    input => input.value === monthValue
+  );
+  if (exists) {
+    alert('Ce mois est déjà ajouté.');
+    return;
+  }
+
+  const block = document.createElement('article');
+  block.className = 'copy-month-block';
+
+  const header = document.createElement('div');
+  header.className = 'copy-month-block-header';
+
+  const monthInput = document.createElement('input');
+  monthInput.type = 'month';
+  monthInput.value = monthValue;
+
+  const actions = document.createElement('div');
+  actions.className = 'copy-month-block-actions';
+
+  const fillBtn = document.createElement('button');
+  fillBtn.type = 'button';
+  fillBtn.className = 'btn ghost btn-small';
+  fillBtn.textContent = 'Tout le mois';
+
+  const removeBtn = document.createElement('button');
+  removeBtn.type = 'button';
+  removeBtn.className = 'btn ghost btn-small';
+  removeBtn.textContent = 'Supprimer';
+
+  actions.append(fillBtn, removeBtn);
+  header.append(monthInput, actions);
+
+  const weekdayWrap = document.createElement('div');
+  weekdayWrap.className = 'copy-month-weekdays';
+
+  WEEKDAY_CHOICES.forEach(day => {
+    const label = document.createElement('label');
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.dataset.weekday = String(day.value);
+    checkbox.checked = Boolean(selectAll);
+    const text = document.createElement('span');
+    text.textContent = day.short;
+    label.append(checkbox, text);
+    weekdayWrap.append(label);
+  });
+
+  block.append(header, weekdayWrap);
+  refs.copyMonthList.appendChild(block);
+
+  fillBtn.addEventListener('click', () => setMonthBlockChecks(block, true));
+  removeBtn.addEventListener('click', () => block.remove());
+}
+
+function setMonthBlockChecks(block, checked) {
+  block?.querySelectorAll('input[data-weekday]')?.forEach(input => {
+    input.checked = checked;
+  });
+}
+
+function nextMonthValue(value) {
+  const [year, month] = (value || '').split('-').map(Number);
+  if (!year || !month) return value;
+  const date = new Date(year, month - 1, 1);
+  date.setMonth(date.getMonth() + 1);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function handleCopyApply(refs, { fullYear = false } = {}) {
+  const weekTargets = collectWeekTargets(refs);
+  const monthTargets = fullYear ? collectYearTargets(refs) : collectMonthTargets(refs);
+  const allTargets = Array.from(new Set([...weekTargets, ...monthTargets]));
+  if (!allTargets.length) {
+    alert('Choisis au moins une journée à remplir.');
+    return;
+  }
+  copyLandingTasksToDates(landingSelectedDate, allTargets);
+  closeCopyDayModal(refs);
+  renderLandingWeek(refs);
+  renderLandingDay(refs);
+}
+
+function collectWeekTargets(refs) {
+  return Array.from(refs.copyWeekTargets?.querySelectorAll('input[type="checkbox"]') || [])
+    .filter(input => input.checked && input.dataset.date)
+    .map(input => input.dataset.date);
+}
+
+function collectMonthTargets(refs) {
+  const blocks = Array.from(refs.copyMonthList?.querySelectorAll('.copy-month-block') || []);
+  const targets = [];
+  blocks.forEach(block => {
+    const monthInput = block.querySelector('input[type="month"]');
+    const value = monthInput?.value;
+    if (!value) return;
+    const [year, month] = value.split('-').map(Number);
+    if (!year || !month) return;
+    const weekdays = getBlockWeekdays(block);
+    if (!weekdays.length) return;
+    targets.push(...getMonthWeekdayDates(year, month - 1, weekdays));
+  });
+  return targets;
+}
+
+function collectYearTargets(refs) {
+  const template = refs.copyMonthList?.querySelector('.copy-month-block');
+  if (!template) return [];
+  const monthInput = template.querySelector('input[type="month"]');
+  let year = monthInput?.value ? Number(monthInput.value.split('-')[0]) : null;
+  if (!year) year = (parseDateKey(landingSelectedDate) || new Date()).getFullYear();
+  const weekdays = getBlockWeekdays(template);
+  if (!weekdays.length) return [];
+  const targets = [];
+  for (let month = 0; month < 12; month += 1) {
+    targets.push(...getMonthWeekdayDates(year, month, weekdays));
+  }
+  return targets;
+}
+
+function getBlockWeekdays(block) {
+  return Array.from(block.querySelectorAll('input[data-weekday]'))
+    .filter(input => input.checked)
+    .map(input => Number(input.dataset.weekday));
+}
+
+function exportLandingCalendar() {
+  const payload = {
+    version: 1,
+    generatedAt: new Date().toISOString(),
+    landing: {
+      childEmoji: state.landing.childEmoji,
+      calendar: state.landing.calendar,
+      selectedDate: state.landing.selectedDate,
+      weekAnchor: state.landing.weekAnchor,
+    },
+  };
+  downloadBlob(JSON.stringify(payload, null, 2), `pilote-calendrier-${Date.now()}.json`, 'application/json');
+}
+
+function importLandingCalendar(file, refs) {
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const data = JSON.parse(String(reader.result));
+      if (!data?.landing?.calendar) throw new Error('format invalide');
+      state.landing = mergeState(DEFAULT_STATE.landing, data.landing);
+      ensureLandingDefaults();
+      saveState();
+      renderLandingWeek(refs);
+      renderLandingDay(refs);
+      showToast('Calendrier importé.');
+    } catch (error) {
+      console.error(error);
+      alert("Impossible d'importer ce fichier.");
+    }
+  };
+  reader.readAsText(file);
+}
 
 /* =========================================================
    Child
    ========================================================= */
 
 function initChild() {
+  setupHelpButton('child');
   const refs = {
     meterButtons: document.querySelectorAll('.meter button[data-level]'),
     levelStatus: document.getElementById('levelStatus'),
@@ -498,6 +1243,7 @@ function getStrategyInstruction(text) {
 /* ====== BLOC 2/3 : PARENT + BILAN + BADGES ====== */
 
 function initParent() {
+  setupHelpButton('parent');
   const refs = {
     lockBanner: document.getElementById('parentLockBanner'),
     unlockForm: document.getElementById('parentUnlockForm'),
@@ -811,6 +1557,7 @@ function populateParentForms(refs) {
    ========================================================= */
 
 function initBilan() {
+  setupHelpButton('bilan');
   const refs = {
     lockBanner: document.getElementById('bilanLockBanner'),
     unlockForm: document.getElementById('bilanUnlockForm'),
@@ -1126,18 +1873,44 @@ function loadState() {
 }
 
 function mergeState(base, override) {
-  if (!override || typeof override !== 'object') return deepClone(base);
-  const result = Array.isArray(base) ? [...base] : { ...base };
-  Object.keys(base).forEach(key => {
-    if (Array.isArray(base[key])) {
-      result[key] = Array.isArray(override[key]) ? override[key] : base[key];
-    } else if (typeof base[key] === 'object' && base[key] !== null) {
-      result[key] = mergeState(base[key], override[key] || {});
-    } else {
-      result[key] = typeof override[key] === 'undefined' ? base[key] : override[key];
+  if (Array.isArray(base)) {
+    return Array.isArray(override) ? override : [...base];
+  }
+
+  const normalizedBase = isPlainObject(base) ? base : {};
+  const normalizedOverride = isPlainObject(override) ? override : {};
+  const result = { ...normalizedBase };
+  const keys = new Set([...Object.keys(normalizedBase), ...Object.keys(normalizedOverride)]);
+
+  keys.forEach(key => {
+    const baseValue = normalizedBase[key];
+    const overrideValue = normalizedOverride[key];
+
+    if (Array.isArray(baseValue) || Array.isArray(overrideValue)) {
+      result[key] = Array.isArray(overrideValue)
+        ? overrideValue
+        : Array.isArray(baseValue)
+        ? baseValue
+        : [];
+      return;
     }
+
+    if (isPlainObject(baseValue) || isPlainObject(overrideValue)) {
+      result[key] = mergeState(
+        isPlainObject(baseValue) ? baseValue : {},
+        isPlainObject(overrideValue) ? overrideValue : {}
+      );
+      return;
+    }
+
+    result[key] = typeof overrideValue === 'undefined' ? baseValue : overrideValue;
   });
+
   return result;
+}
+
+function isPlainObject(value) {
+  return value && typeof value === 'object' && !Array.isArray(value);
 }
 
 function deepClone(obj) {
@@ -1225,4 +1998,135 @@ function copyToClipboard(text) {
   } catch {
     showToast('Impossible de copier.');
   }
+}
+
+function ensureLandingDefaults() {
+  if (!state.landing) state.landing = deepClone(DEFAULT_STATE.landing);
+  if (!state.landing.calendar) state.landing.calendar = {};
+  if (!state.landing.childEmoji) state.landing.childEmoji = DEFAULT_STATE.landing.childEmoji;
+  Object.keys(state.landing.calendar).forEach(dateKey => {
+    state.landing.calendar[dateKey] = (state.landing.calendar[dateKey] || []).map(task => ({
+      id: task.id || generateLandingTaskId(),
+      emoji: task.emoji || '⭐️',
+      time: task.time || '',
+      endTime: task.endTime || '',
+      label: task.label || '',
+      completed: Boolean(task.completed),
+    }));
+  });
+}
+
+function addLandingTask(dateKey, task) {
+  if (!dateKey) return;
+  const tasks = state.landing.calendar[dateKey] ? [...state.landing.calendar[dateKey]] : [];
+  tasks.push({
+    id: generateLandingTaskId(),
+    emoji: task.emoji || '⭐️',
+    time: task.time || '',
+    endTime: task.endTime || '',
+    label: task.label,
+    completed: false,
+  });
+  state.landing.calendar[dateKey] = tasks;
+  saveState();
+}
+
+function removeLandingTask(dateKey, taskId) {
+  if (!dateKey || !taskId) return;
+  const tasks = state.landing.calendar[dateKey] || [];
+  const next = tasks.filter(task => task.id !== taskId);
+  if (next.length) state.landing.calendar[dateKey] = next;
+  else delete state.landing.calendar[dateKey];
+  saveState();
+}
+
+function toggleLandingTaskCompletion(dateKey, taskId, completed) {
+  if (!dateKey || !taskId) return;
+  const tasks = state.landing.calendar[dateKey] || [];
+  const idx = tasks.findIndex(task => task.id === taskId);
+  if (idx === -1) return;
+  const updated = { ...tasks[idx], completed: Boolean(completed) };
+  state.landing.calendar[dateKey] = [...tasks.slice(0, idx), updated, ...tasks.slice(idx + 1)];
+  saveState();
+}
+
+function copyLandingTasksToDates(sourceKey, targetKeys) {
+  if (!sourceKey || !targetKeys?.length) return;
+  const sourceTasks = state.landing.calendar[sourceKey] || [];
+  targetKeys.forEach(key => {
+    if (key === sourceKey) return;
+    state.landing.calendar[key] = sourceTasks.map(task => ({
+      emoji: task.emoji,
+      time: task.time,
+      endTime: task.endTime || '',
+      label: task.label,
+      completed: false,
+      id: generateLandingTaskId(),
+    }));
+  });
+  saveState();
+}
+
+function ensureLandingWeekContainsSelection() {
+  const selected = parseDateKey(landingSelectedDate) || new Date();
+  if (!landingWeekAnchor) {
+    landingWeekAnchor = startOfWeek(selected);
+    return;
+  }
+  const start = startOfWeek(landingWeekAnchor);
+  const end = new Date(start);
+  end.setDate(start.getDate() + 6);
+  if (selected < start || selected > end) landingWeekAnchor = startOfWeek(selected);
+}
+
+function getWeekDates(baseDate) {
+  const start = startOfWeek(baseDate);
+  return Array.from({ length: 7 }, (_, index) => {
+    const day = new Date(start);
+    day.setDate(start.getDate() + index);
+    return day;
+  });
+}
+
+function getMonthWeekdayDates(year, monthIndex, weekdays) {
+  const days = [];
+  const cursor = new Date(year, monthIndex, 1);
+  cursor.setHours(0, 0, 0, 0);
+  while (cursor.getMonth() === monthIndex) {
+    if (weekdays.includes(cursor.getDay())) days.push(toDateKey(cursor));
+    cursor.setDate(cursor.getDate() + 1);
+  }
+  return days;
+}
+
+function startOfWeek(date) {
+  const copy = new Date(date);
+  copy.setHours(0, 0, 0, 0);
+  const day = copy.getDay();
+  const diff = (day + 6) % 7; // lundi = 0
+  copy.setDate(copy.getDate() - diff);
+  return copy;
+}
+
+function toDateKey(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function parseDateKey(key) {
+  if (!key) return null;
+  const parts = key.split('-').map(Number);
+  if (parts.length !== 3 || Number.isNaN(parts[0])) return null;
+  return new Date(parts[0], parts[1] - 1, parts[2]);
+}
+
+function generateLandingTaskId() {
+  return `task-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function capitalizeLabel(text) {
+  if (!text) return '';
+  return text.charAt(0).toUpperCase() + text.slice(1);
 }
