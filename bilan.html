@@ -6,37 +6,46 @@
   <title>PILOTE – Espace bilan</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
+
 <body data-page="bilan">
   <main class="container dashboard">
     <header class="card page-hero">
       <p class="eyebrow">Espace bilan</p>
       <h1>Temps de compréhension</h1>
       <p>Donner du sens, ajuster la structure, préparer la suite.</p>
-      <button class="btn ghost" data-action="lock-bilan" type="button">Verrouiller</button>
+
+      <nav class="row" aria-label="Navigation">
+        <a class="btn ghost" href="index.html">← Accueil</a>
+        <a class="btn ghost" href="parent.html">Tour de contrôle</a>
+        <button class="btn ghost" data-action="lock-bilan" type="button">Verrouiller</button>
+      </nav>
     </header>
 
-    <section class="card summary-card">
-      <h2>Semaine en un coup d'œil</h2>
+    <section class="card summary-card" aria-labelledby="summaryTitle">
+      <h2 id="summaryTitle">Semaine en un coup d'œil</h2>
       <ul class="summary-list">
         <li>Ce qui aide le plus : <span id="summaryHelps">À compléter.</span></li>
         <li>Moment le plus difficile : <span id="summaryChallenge">À compléter.</span></li>
         <li>Objectif pour la semaine prochaine : <span id="summaryNext">À définir.</span></li>
       </ul>
+
       <div class="summary-questions">
-        <p>Qu'est-ce qui t'a aidé ?</p>
-        <p>Qu'est-ce qu'on essaie plus tôt la prochaine fois ?</p>
+        <p><strong>Questions simples :</strong></p>
+        <p>• Qu'est-ce qui t'a aidé ?</p>
+        <p>• Qu'est-ce qu'on essaie plus tôt la prochaine fois ?</p>
       </div>
     </section>
 
     <section class="card lock-banner" id="bilanLockBanner">
-      <p>Accès protégé : code PIN requis.</p>
+      <h2>Déverrouiller</h2>
+      <p>Accès protégé : code PIN requis (même code que l’espace parent).</p>
+
       <form id="bilanUnlockForm" class="pin-form">
         <label for="bilanPinInput">Code PIN</label>
         <input id="bilanPinInput" type="password" inputmode="numeric" maxlength="6" required />
         <button type="submit">Déverrouiller</button>
       </form>
     </section>
-
     <div class="grid lockable" id="bilanContent">
       <article class="card">
         <h2>Bilan enfant</h2>
@@ -72,6 +81,7 @@
 
       <article class="card">
         <h2>Historique des émotions</h2>
+        <p class="micro-copy">Dernières entrées (jusqu’à 15). Utile pour repérer les moments où ça monte.</p>
         <ul id="emotionHistory" class="history-list"></ul>
       </article>
 
@@ -81,10 +91,13 @@
           <button id="exportJsonBtn" type="button">Exporter JSON</button>
           <button id="exportCsvBtn" type="button">Exporter CSV</button>
 
-          <label class="import-label" for="importFile">Importer des données</label>
+          <label class="import-label" for="importFile">Importer (JSON)</label>
           <input id="importFile" type="file" accept="application/json" />
         </div>
-        <p class="micro-copy">Les données restent sur cet appareil. Exportez si vous souhaitez partager.</p>
+
+        <p class="micro-copy">
+          Les données restent sur cet appareil. Exportez si vous souhaitez partager ou sauvegarder.
+        </p>
       </article>
     </div>
   </main>
