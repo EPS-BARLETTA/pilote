@@ -3,25 +3,49 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>PILOTE</title>
+  <title>PILOTE – Accueil</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
+
 <body data-page="landing">
   <main class="container landing">
-    <section class="card landing-hero">
-      <p class="eyebrow">Pilote</p>
+    <header class="card landing-hero">
+      <p class="eyebrow">PILOTE</p>
       <h1>Choisis ton espace</h1>
-      <p>
+      <p class="small">
         Mon cockpit pour l’enfant, la tour de contrôle pour le parent, et le temps de compréhension
-        pour dialoguer ensemble. Tout est local, simple et bienveillant.
+        pour dialoguer ensemble. Tout reste sur cet appareil (localStorage).
       </p>
-      <div class="row">
-        <a class="btn btn-primary" href="enfant.html">Espace enfant</a>
-        <a class="btn" href="parent.html">Tour de contrôle</a>
-        <a class="btn" href="bilan.html">Espace bilan</a>
-      </div>
+    </header>
+
+    <section class="grid landing-grid" aria-label="Accès rapides">
+      <article class="card landing-card">
+        <p class="eyebrow">Enfant</p>
+        <h2>Mon cockpit</h2>
+        <p class="small">Je choisis mon niveau, je demande une pause, j’utilise un frein.</p>
+        <a class="btn btn-primary" href="enfant.html">Ouvrir l’espace enfant</a>
+      </article>
+
+      <article class="card landing-card">
+        <p class="eyebrow">Parent</p>
+        <h2>Tour de contrôle</h2>
+        <p class="small">Objectifs, routines, scripts, déclencheurs et récompenses.</p>
+        <a class="btn" href="parent.html">Ouvrir l’espace parent</a>
+      </article>
+
+      <article class="card landing-card">
+        <p class="eyebrow">Ensemble</p>
+        <h2>Temps de compréhension</h2>
+        <p class="small">Bilan enfant/parent + historique + export/import.</p>
+        <a class="btn" href="bilan.html">Ouvrir l’espace bilan</a>
+      </article>
     </section>
+
+    <footer class="micro-copy landing-footer">
+      Astuce : sur iPhone/iPad, ajoute la page à l’écran d’accueil pour un usage “app”.
+    </footer>
   </main>
+
   <script src="app.js" defer></script>
 </body>
 </html>
