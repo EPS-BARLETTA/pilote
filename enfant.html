@@ -6,6 +6,7 @@
   <title>PILOTE – Mon cockpit</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
+
 <body data-page="child">
   <main class="container child">
     <header class="card child-hero">
@@ -24,28 +25,15 @@
         <h2 id="meterTitle">Où est ton moteur ?</h2>
         <p class="small" id="levelStatus">Choisis ton niveau pour continuer.</p>
       </div>
+
       <div class="meter" role="group" aria-label="Baromètre des émotions">
-        <button type="button" data-level="1">
-          <span aria-hidden="true">😌</span>
-          <strong>Calme</strong>
-        </button>
-        <button type="button" data-level="2">
-          <span aria-hidden="true">🙂</span>
-          <strong>OK</strong>
-        </button>
-        <button type="button" data-level="3">
-          <span aria-hidden="true">😐</span>
-          <strong>Chargé</strong>
-        </button>
-        <button type="button" data-level="4">
-          <span aria-hidden="true">😣</span>
-          <strong>Besoin d'aide</strong>
-        </button>
-        <button type="button" data-level="5">
-          <span aria-hidden="true">😡</span>
-          <strong>Trop plein</strong>
-        </button>
+        <button type="button" data-level="1"><span aria-hidden="true">😌</span><strong>Calme</strong></button>
+        <button type="button" data-level="2"><span aria-hidden="true">🙂</span><strong>OK</strong></button>
+        <button type="button" data-level="3"><span aria-hidden="true">😐</span><strong>Chargé</strong></button>
+        <button type="button" data-level="4"><span aria-hidden="true">😣</span><strong>Besoin d'aide</strong></button>
+        <button type="button" data-level="5"><span aria-hidden="true">😡</span><strong>Trop plein</strong></button>
       </div>
+
       <p class="micro-copy meter-note">Il n'y a pas de mauvaise réponse.</p>
     </section>
 
@@ -55,7 +43,9 @@
         <p class="small">Demander une pause, c'est une compétence.</p>
         <p class="micro-copy">Chaque pause demandée = +1 jeton.</p>
       </div>
-      <button class="btn btn-primary big-pause" id="pauseButton" type="button">🛑 Je me mets en pause</button>
+      <button class="btn btn-primary big-pause" id="pauseButton" type="button">
+        🛑 Je me mets en pause
+      </button>
     </section>
 
     <section class="card tool-card" id="toolCard" hidden>
@@ -63,18 +53,24 @@
         <h2>Mes freins (choisis-en un)</h2>
         <p class="small">Celui qui t'aide le plus maintenant.</p>
       </div>
-      <button id="tool-breath" class="btn breath-trigger" type="button">🌬️ Respirer avec la sphère</button>
+
+      <button id="tool-breath" class="btn breath-trigger" type="button">
+        🌬️ Respirer avec la sphère
+      </button>
+
       <div class="tools" id="toolList"></div>
     </section>
 
     <details class="carnet" id="childCarnet">
       <summary class="card">Mon carnet</summary>
+
       <div class="carnet-content">
         <article class="card nested-card">
           <div class="card-head">
             <h3>Mon objectif du moment</h3>
             <button class="btn ghost" id="resetObjectivesBtn" type="button">Réinitialiser</button>
           </div>
+
           <p class="small" id="focusSummary"></p>
           <ul id="objectiveList" class="objective-list"></ul>
         </article>
@@ -88,16 +84,6 @@
         </article>
 
         <article class="card nested-card">
-          <h3>Petits trucs qui aident</h3>
-          <ul class="anchor-list">
-            <li>👐 Frotte doucement tes mains</li>
-            <li>👣 Pose tes pieds bien à plat</li>
-            <li>👂 Écoute trois sons autour de toi</li>
-            <li>👃 Choisis une odeur rassurante</li>
-          </ul>
-        </article>
-
-        <article class="card nested-card">
           <div class="card-head">
             <h3>Ma récompense (quand je suis prêt)</h3>
             <span class="small">Validée par mon parent ✅</span>
@@ -108,15 +94,19 @@
     </details>
   </main>
 
+  <!-- modal respiration -->
   <div id="breath-modal" class="modal" hidden>
-    <div class="modal-card">
-      <div class="breath-sphere" aria-hidden="true"></div>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-label="Respiration guidée">
+      <div id="breath-sphere" class="breath-sphere" aria-hidden="true"></div>
       <p id="breath-label" class="breath-label">Inspire…</p>
       <button id="breath-close" class="btn btn-primary" type="button">J'ai fini</button>
     </div>
   </div>
 
+  <!-- toast -->
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
-  <script src="app.js" defer></script>
+
+  <!-- JS (sans defer puisque déjà en bas) -->
+  <script src="app.js"></script>
 </body>
 </html>
