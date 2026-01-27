@@ -23,22 +23,16 @@
           <p id="crisisPhrase" class="crisis-text">« Je vois que c'est dur. On met tout en pause. Je suis là. »</p>
           <button class="btn ghost" id="crisisPhraseBtn" type="button">Autre phrase</button>
         </article>
+
         <article class="card nested-card">
           <p class="eyebrow">Action immédiate</p>
-          <ul class="action-list">
-            <li>⏱️ 2 minutes sans parler</li>
-            <li>🪑 Coin calme / s'éloigner du bruit</li>
-            <li>🌬️ Respiration lente</li>
-          </ul>
+          <p id="crisisDo" class="crisis-text"></p>
           <p class="micro-copy">On ne règle rien pendant la pause.</p>
         </article>
+
         <article class="card nested-card">
           <p class="eyebrow">Après la pause</p>
-          <ul class="action-list">
-            <li>Dire pardon ou faire un geste</li>
-            <li>Ranger / réparer</li>
-            <li>Recommencer autrement</li>
-          </ul>
+          <p id="crisisAfter" class="crisis-text"></p>
         </article>
       </div>
     </section>
@@ -83,10 +77,13 @@
         <form id="routineForm" class="stack-form">
           <label>Routine du matin</label>
           <textarea data-routine="morning" rows="3" placeholder="3 étapes maximum."></textarea>
+
           <label>Routine des devoirs</label>
           <textarea data-routine="homework" rows="3"></textarea>
+
           <label>Routine du soir</label>
           <textarea data-routine="evening" rows="3"></textarea>
+
           <button type="submit">Sauvegarder</button>
         </form>
       </article>
@@ -104,8 +101,10 @@
         <h2>Déclencheurs fréquents</h2>
         <form id="triggerForm" class="stack-form">
           <div class="trigger-options" id="triggerOptions"></div>
+
           <label for="triggerOtherInput">Autres déclencheurs</label>
           <textarea id="triggerOtherInput" rows="3" placeholder="Compléter si besoin."></textarea>
+
           <button type="submit">Mettre à jour</button>
         </form>
       </article>
@@ -116,22 +115,17 @@
         <form id="rewardForm" class="stack-form">
           <label>Immédiates</label>
           <textarea data-reward="immediate" rows="3" placeholder="Moment câlin, puzzle, jeu calme..."></textarea>
+
           <label>Programmées</label>
           <textarea data-reward="planned" rows="3" placeholder="Balade, vélo, cinéma..."></textarea>
+
           <label for="plannedNextInput">Prochaine sortie</label>
           <input id="plannedNextInput" type="text" placeholder="Ex : Samedi 15h – Vélo" />
+
           <label>Symboliques</label>
           <textarea data-reward="symbolic" rows="3" placeholder="Badges, messages..."></textarea>
-          <button type="submit">Rendre visible côté enfant</button>
-        </form>
-      </article>
 
-      <article class="card">
-        <h2>Code PIN</h2>
-        <form id="pinForm" class="stack-form">
-          <label for="pinInput">Nouveau code</label>
-          <input id="pinInput" type="password" inputmode="numeric" minlength="4" maxlength="6" placeholder="••••" />
-          <button type="submit">Mettre à jour</button>
+          <button type="submit">Rendre visible côté enfant</button>
         </form>
       </article>
     </div>
