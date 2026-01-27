@@ -1,7 +1,8 @@
 /* =========================================================
-   PILOTE - app.js (version robuste)
-   - pages: enfant / parent / bilan
-   - fonctionnement 100% local via localStorage
+   PILOTE - app.js (version stable)
+   - Child / Parent / Bilan
+   - 100% localStorage
+   - Compatible avec ton styles.css actuel
    ========================================================= */
 
 const STORAGE_KEY = 'pilote-state-v1';
@@ -87,7 +88,11 @@ const DEFAULT_STATE = {
 
   primaryObjectiveId: OBJECTIVE_LIBRARY[0].id,
 
-  strategies: ['🤲 Appuyer / serrer (20 s)', '🪑 Coin calme (2 min)', '🌬️ Respirer 5 fois'],
+  strategies: [
+    '🤲 Appuyer / serrer (20 s)',
+    '🪑 Coin calme (2 min)',
+    '🌬️ Respirer 5 fois',
+  ],
 
   objectives: OBJECTIVE_LIBRARY.slice(0, 3),
   objectiveStatus: {},
@@ -119,20 +124,20 @@ let crisisIndex = 0;
 let breathInterval = null;
 
 /* =========================================================
-   Boot
+   Boot / router
    ========================================================= */
 
 document.addEventListener('DOMContentLoaded', () => {
-  // Détection robuste: data-page OU URL
-  const pageAttr = document.body?.dataset?.page; // ex: child/parent/bilan
-  const path = (location.pathname || '').toLowerCase();
+  const pageAttr = document.body?.dataset?.page;
 
+  // fallback URL (si jamais data-page absent)
+  const path = (location.pathname || '').toLowerCase();
   const page =
     pageAttr ||
     (path.includes('enfant') ? 'child' : path.includes('parent') ? 'parent' : path.includes('bilan') ? 'bilan' : '');
 
   ensureObjectiveStatus();
-  saveState(); // normalise l'état au chargement
+  saveState();
 
   if (page === 'child') initChild();
   if (page === 'parent') initParent();
@@ -140,35 +145,28 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 /* =========================================================
-   Enfant
+   Child
    ========================================================= */
 
 function initChild() {
   const refs = {
     meterButtons: document.querySelectorAll('.meter button[data-level]'),
     levelStatus: document.getElementById('levelStatus'),
-
     pauseCard: document.getElementById('pauseCard'),
     pauseButton: document.getElementById('pauseButton'),
-
     toolCard: document.getElementById('toolCard'),
     toolList: document.getElementById('toolList'),
-
     objectiveList: document.getElementById('objectiveList'),
     resetObjectivesBtn: document.getElementById('resetObjectivesBtn'),
-
     tokenCount: document.getElementById('tokenCount'),
     badgeList: document.getElementById('badgeList'),
-
     rewardOfDay: document.getElementById('rewardOfDay'),
     focusSummary: document.getElementById('focusSummary'),
 
-    // respiration (IDs attendus)
     breathTrigger: document.getElementById('tool-breath'),
     breathModal: document.getElementById('breath-modal'),
     breathLabel: document.getElementById('breath-label'),
     breathClose: document.getElementById('breath-close'),
-    breathSphere: document.getElementById('breath-sphere'), // optionnel
   };
 
   renderChild(refs);
@@ -181,13 +179,14 @@ function initChild() {
   refs.pauseButton?.addEventListener('click', () => handlePause(refs));
 
   refs.objectiveList?.addEventListener('change', event => {
-    if (!event.target?.matches?.('input[type="checkbox"]')) return;
+    const target = event.target;
+    if (!target?.matches?.('input[type="checkbox"]')) return;
 
-    const id = event.target.dataset.objective;
+    const id = target.dataset.objective;
     if (!id) return;
 
-    const checked = Boolean(event.target.checked);
-    const prev = Boolean(state.objectiveStatus[id]);
+    const checked = Boolean(target.checked);
+    const prev = Boolean(state.objectiveStatus?.[id]);
 
     state.objectiveStatus[id] = checked;
 
@@ -201,9 +200,7 @@ function initChild() {
   });
 
   refs.resetObjectivesBtn?.addEventListener('click', () => {
-    Object.keys(state.objectiveStatus || {}).forEach(key => {
-      state.objectiveStatus[key] = false;
-    });
+    Object.keys(state.objectiveStatus || {}).forEach(key => (state.objectiveStatus[key] = false));
     saveState();
     renderChild(refs);
     showToast('Objectifs remis à zéro.');
@@ -295,7 +292,7 @@ function renderChildObjectives(list) {
     checkbox.dataset.objective = obj.id;
     checkbox.checked = Boolean(state.objectiveStatus?.[obj.id]);
 
-    label.append(checkbox, document.createTextNode(obj.label));
+    label.append(checkbox, document.createTextNode(' ' + obj.label));
     li.appendChild(label);
 
     if (checkbox.checked) li.classList.add('completed');
@@ -303,52 +300,48 @@ function renderChildObjectives(list) {
   });
 }
 
+/* ===== respiration ===== */
+
 function setupBreath(refs) {
   if (!refs.breathTrigger || !refs.breathModal) return;
 
-  refs.breathTrigger.addEventListener('click', () => {
-    refs.breathModal.hidden = false;
-
-    updateBreathLabel(refs, true);
-    setBreathSphere(refs, true);
-
+  const startBreathText = () => {
     clearInterval(breathInterval);
-    let inhale = false;
+    let inhale = true;
+    if (refs.breathLabel) refs.breathLabel.textContent = 'Inspire…';
 
+    // Ton CSS anime déjà la sphère => ici on fait juste le texte
     breathInterval = setInterval(() => {
       inhale = !inhale;
-      updateBreathLabel(refs, inhale);
-      setBreathSphere(refs, inhale);
+      if (refs.breathLabel) refs.breathLabel.textContent = inhale ? 'Inspire…' : 'Expire…';
     }, 3000);
+  };
+
+  const close = () => {
+    refs.breathModal.hidden = true;
+    clearInterval(breathInterval);
+    breathInterval = null;
+  };
+
+  refs.breathTrigger.addEventListener('click', () => {
+    refs.breathModal.hidden = false;
+    startBreathText();
   });
 
-  refs.breathClose?.addEventListener('click', () => closeBreath(refs));
+  refs.breathClose?.addEventListener('click', close);
 
   refs.breathModal.addEventListener('click', event => {
-    if (event.target === refs.breathModal) closeBreath(refs);
+    if (event.target === refs.breathModal) close();
   });
-}
 
-function updateBreathLabel(refs, inhale) {
-  if (refs.breathLabel) refs.breathLabel.textContent = inhale ? 'Inspire…' : 'Expire…';
-}
-
-// Optionnel: si tu as une sphère avec id="breath-sphere"
-// tu peux faire une anim CSS via une classe .inhale / .exhale
-function setBreathSphere(refs, inhale) {
-  if (!refs.breathSphere) return;
-  refs.breathSphere.classList.toggle('inhale', inhale);
-  refs.breathSphere.classList.toggle('exhale', !inhale);
-}
-
-function closeBreath(refs) {
-  if (refs.breathModal) refs.breathModal.hidden = true;
-  clearInterval(breathInterval);
-  breathInterval = null;
+  // échap pour fermer
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && !refs.breathModal.hidden) close();
+  });
 }
 
 /* =========================================================
-   Parent
+   Parent (robuste, ne crashe pas si des IDs manquent)
    ========================================================= */
 
 function initParent() {
@@ -415,10 +408,7 @@ function initParent() {
   refs.pinSetupForm?.addEventListener('submit', event => {
     event.preventDefault();
     const newPin = refs.pinSetupInput?.value?.trim() || '';
-    if (!/^[0-9]{4,6}$/.test(newPin)) {
-      showToast('Code à 4-6 chiffres.');
-      return;
-    }
+    if (!/^[0-9]{4,6}$/.test(newPin)) return showToast('Code à 4-6 chiffres.');
     state.pin = newPin;
     state.pinCustom = true;
     if (refs.pinSetupInput) refs.pinSetupInput.value = '';
@@ -430,10 +420,7 @@ function initParent() {
   refs.pinForm?.addEventListener('submit', event => {
     event.preventDefault();
     const newPin = refs.pinInputNew?.value?.trim() || '';
-    if (!/^[0-9]{4,6}$/.test(newPin)) {
-      showToast('Code à 4-6 chiffres.');
-      return;
-    }
+    if (!/^[0-9]{4,6}$/.test(newPin)) return showToast('Code à 4-6 chiffres.');
     state.pin = newPin;
     state.pinCustom = true;
     if (refs.pinInputNew) refs.pinInputNew.value = '';
@@ -465,8 +452,9 @@ function initParent() {
   refs.routineForm?.addEventListener('submit', event => {
     event.preventDefault();
     refs.routineFields?.forEach(area => {
-      if (!area?.dataset?.routine) return;
-      state.routines[area.dataset.routine] = area.value.trim();
+      const key = area?.dataset?.routine;
+      if (!key) return;
+      state.routines[key] = area.value.trim();
     });
     saveState();
     showToast('Routines sauvegardées.');
@@ -475,16 +463,10 @@ function initParent() {
   refs.strategyForm?.addEventListener('submit', event => {
     event.preventDefault();
     if (!refs.strategyFields) return;
-
     const values = Array.from(refs.strategyFields.querySelectorAll('input'))
-      .map(input => input.value.trim())
+      .map(i => i.value.trim())
       .filter(Boolean);
-
-    if (values.length < 3) {
-      showToast('Ajoutez au moins 3 idées.');
-      return;
-    }
-
+    if (values.length < 3) return showToast('Ajoutez au moins 3 idées.');
     state.strategies = values.slice(0, 5);
     saveState();
     showToast('Stratégies mises à jour.');
@@ -493,7 +475,7 @@ function initParent() {
   refs.triggerForm?.addEventListener('submit', event => {
     event.preventDefault();
     const selections = Array.from(refs.triggerOptions?.querySelectorAll('input:checked') || []).map(
-      input => input.value
+      i => i.value
     );
     state.triggerSelections = selections;
     state.triggerNotes = refs.triggerOtherInput?.value?.trim() || '';
@@ -503,13 +485,11 @@ function initParent() {
 
   refs.rewardForm?.addEventListener('submit', event => {
     event.preventDefault();
-
     refs.rewardInputs?.forEach(area => {
       const key = area?.dataset?.reward;
       if (!key) return;
       state.rewards[key] = splitLines(area.value);
     });
-
     state.rewards.next = refs.plannedNextInput?.value?.trim() || '';
     saveState();
     showToast('Récompenses validées.');
@@ -530,7 +510,6 @@ function updatePinPanels(refs) {
 function renderScripts(container) {
   if (!container) return;
   container.innerHTML = '';
-
   SCRIPT_LIBRARY.forEach(group => {
     const card = document.createElement('div');
     card.className = 'script-card';
@@ -586,7 +565,6 @@ function renderObjectiveChoices(refs) {
 
     const extra = document.createElement('div');
     extra.className = 'choice-extra';
-
     const span = document.createElement('span');
     span.textContent = 'Objectif principal';
     extra.append(radio, span);
@@ -628,7 +606,6 @@ function handleObjectiveToggle(refs, checkbox) {
 function renderStrategyFields(container) {
   if (!container) return;
   container.innerHTML = '';
-
   for (let i = 0; i < 5; i += 1) {
     const input = document.createElement('input');
     input.type = 'text';
@@ -641,16 +618,13 @@ function renderStrategyFields(container) {
 function renderTriggerOptions(container) {
   if (!container) return;
   container.innerHTML = '';
-
   TRIGGER_OPTIONS.forEach(option => {
     const label = document.createElement('label');
     label.className = 'trigger-pill';
-
     const checkbox = document.createElement('input');
     checkbox.type = 'checkbox';
     checkbox.value = option.id;
     checkbox.checked = (state.triggerSelections || []).includes(option.id);
-
     label.append(checkbox, document.createTextNode(option.label));
     container.appendChild(label);
   });
@@ -700,7 +674,6 @@ function initBilan() {
     },
 
     emotionHistory: document.getElementById('emotionHistory'),
-
     summaryHelps: document.getElementById('summaryHelps'),
     summaryChallenge: document.getElementById('summaryChallenge'),
     summaryNext: document.getElementById('summaryNext'),
@@ -712,7 +685,6 @@ function initBilan() {
 
   renderEmotionHistory(refs.emotionHistory);
   renderBilanSummary(refs);
-
   setBilanLocked(refs, true);
 
   refs.unlockForm?.addEventListener('submit', event => {
@@ -756,15 +728,12 @@ function initBilan() {
 
   refs.exportCsvBtn?.addEventListener('click', () => {
     const rows = [['type', 'categorie', 'valeur', 'timestamp']];
-
     (state.emotionHistory || []).forEach(entry => {
       rows.push(['emotion', EMOTION_LABELS[entry.level], entry.level, entry.timestamp]);
     });
-
     (state.pauseHistory || []).forEach(entry => {
       rows.push(['pause', '', 'pause demandée', entry.timestamp]);
     });
-
     const csv = rows.map(r => r.map(safeCsvCell).join(',')).join('\n');
     downloadBlob(csv, `pilote-${Date.now()}.csv`, 'text/csv');
   });
@@ -772,7 +741,6 @@ function initBilan() {
   refs.importFile?.addEventListener('change', event => {
     const file = event.target.files?.[0];
     if (!file) return;
-
     const reader = new FileReader();
     reader.onload = () => {
       try {
@@ -799,16 +767,13 @@ function setBilanLocked(refs, locked) {
 
 function renderEmotionHistory(list) {
   if (!list) return;
-
   list.innerHTML = '';
-
   if (!(state.emotionHistory || []).length) {
     const li = document.createElement('li');
     li.textContent = 'Aucune donnée pour le moment.';
     list.appendChild(li);
     return;
   }
-
   [...state.emotionHistory].slice(-15).reverse().forEach(entry => {
     const li = document.createElement('li');
     li.textContent = `${EMOTION_LABELS[entry.level]} – ${formatDate(entry.timestamp)}`;
@@ -821,39 +786,29 @@ function renderBilanSummary(refs) {
     refs.summaryHelps.textContent =
       state.reviews?.child?.helps || state.reviews?.parent?.strategies || 'À compléter.';
   }
-
   if (refs.summaryChallenge) {
     refs.summaryChallenge.textContent =
       state.reviews?.parent?.risks || state.reviews?.child?.try || 'À compléter.';
   }
-
   const primary = getPrimaryObjective();
-
-  if (refs.summaryNext) {
-    refs.summaryNext.textContent = primary?.label || state.focus?.skill || 'À définir.';
-  }
+  if (refs.summaryNext) refs.summaryNext.textContent = primary?.label || state.focus?.skill || 'À définir.';
 }
 
 /* =========================================================
-   Badges (manquait dans ton fichier)
+   Badges (tu avais les styles, je fournis le rendu)
    ========================================================= */
 
 function renderBadges(container) {
   if (!container) return;
-
   container.innerHTML = '';
 
   const unlocked = BADGE_RULES.filter(rule => {
-    try {
-      return Boolean(rule.check(state));
-    } catch {
-      return false;
-    }
+    try { return Boolean(rule.check(state)); } catch { return false; }
   });
 
   if (!unlocked.length) {
     const li = document.createElement('li');
-    li.textContent = 'Aucun badge pour le moment (c’est OK).';
+    li.textContent = 'Pas de badge pour le moment (c’est OK).';
     container.appendChild(li);
     return;
   }
@@ -866,7 +821,7 @@ function renderBadges(container) {
 }
 
 /* =========================================================
-   Helpers partagés
+   Shared helpers
    ========================================================= */
 
 function addTokens(amount, message) {
@@ -878,10 +833,8 @@ function addTokens(amount, message) {
 function showToast(text) {
   const toast = document.getElementById('toast');
   if (!toast) return;
-
   toast.textContent = text;
   toast.classList.add('visible');
-
   clearTimeout(showToast.timeout);
   showToast.timeout = setTimeout(() => toast.classList.remove('visible'), 2600);
 }
@@ -907,9 +860,7 @@ function loadState() {
 
 function mergeState(base, override) {
   if (!override || typeof override !== 'object') return structuredClone(base);
-
   const result = Array.isArray(base) ? [...base] : { ...base };
-
   Object.keys(base).forEach(key => {
     if (Array.isArray(base[key])) {
       result[key] = Array.isArray(override[key]) ? override[key] : base[key];
@@ -919,7 +870,6 @@ function mergeState(base, override) {
       result[key] = typeof override[key] === 'undefined' ? base[key] : override[key];
     }
   });
-
   return result;
 }
 
