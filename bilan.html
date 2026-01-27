@@ -42,11 +42,14 @@
         <h2>Bilan enfant</h2>
         <form id="childReviewForm" class="stack-form">
           <label for="childHelps">Ce qui aide le plus</label>
-          <textarea id="childHelps" rows="3"></textarea>
+          <textarea id="childHelps" rows="3" placeholder="Ex : pause, respirer, coin calme..."></textarea>
+
           <label for="childProud">Ce dont je suis fier</label>
-          <textarea id="childProud" rows="3"></textarea>
+          <textarea id="childProud" rows="3" placeholder="Un petit progrès, même minuscule."></textarea>
+
           <label for="childTry">Ce que je veux essayer autrement</label>
-          <textarea id="childTry" rows="3"></textarea>
+          <textarea id="childTry" rows="3" placeholder="Ex : demander la pause plus tôt, dire “stop”..."></textarea>
+
           <button type="submit">Enregistrer</button>
         </form>
       </article>
@@ -55,11 +58,14 @@
         <h2>Bilan parent</h2>
         <form id="parentReviewForm" class="stack-form">
           <label for="parentRisks">Moments à risque</label>
-          <textarea id="parentRisks" rows="3"></textarea>
+          <textarea id="parentRisks" rows="3" placeholder="Quand / où / avec quoi ça monte le plus."></textarea>
+
           <label for="parentStrategies">Stratégies efficaces</label>
-          <textarea id="parentStrategies" rows="3"></textarea>
-          <label for="parentStructure">Objectif principal pour la semaine suivante</label>
-          <textarea id="parentStructure" rows="3"></textarea>
+          <textarea id="parentStrategies" rows="3" placeholder="Ce qui a vraiment aidé (même un peu)."></textarea>
+
+          <label for="parentStructure">Structure / cadre à ajuster</label>
+          <textarea id="parentStructure" rows="3" placeholder="Routines, transitions, consignes plus courtes, plan B..."></textarea>
+
           <button type="submit">Enregistrer</button>
         </form>
       </article>
@@ -74,6 +80,7 @@
         <div class="export-actions">
           <button id="exportJsonBtn" type="button">Exporter JSON</button>
           <button id="exportCsvBtn" type="button">Exporter CSV</button>
+
           <label class="import-label" for="importFile">Importer des données</label>
           <input id="importFile" type="file" accept="application/json" />
         </div>
