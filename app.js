@@ -1,11 +1,14 @@
+/* ====== BLOC 1/3 : config + state + boot + CHILD ====== */
+
 /* =========================================================
-   PILOTE - app.js (version stable)
-   - Child / Parent / Bilan
+   PILOTE - app.js (version stable v2)
    - 100% localStorage
-   - Compatible avec ton styles.css actuel
+   - Sans backend / sans lib / sans tracking
+   - Robuste si des éléments HTML manquent
    ========================================================= */
 
-const STORAGE_KEY = 'pilote-state-v1';
+const STORAGE_KEY = 'pilote-state-v2';
+const LEGACY_KEYS = ['pilote-state-v1']; // migration douce
 
 const EMOTION_LABELS = {
   1: 'Calme',
@@ -31,26 +34,38 @@ const OBJECTIVE_LIBRARY = [
 ];
 
 const CRISIS_PHRASES = [
-  "« Je vois que c'est dur. On met tout en pause. Je suis là. »",
-  "« Ton moteur est trop chargé. On fait une pause ensemble. »",
-  "« On respire d'abord, on parle après. »",
+  {
+    say: "« Je vois que c'est dur. On met tout en pause. Je suis là. »",
+    do: 'Faire baisser les stimulations. Une seule consigne courte.',
+    after: 'Quand ça redescend : “On répare doucement. On recommence petit.”',
+  },
+  {
+    say: "« Ton moteur est trop chargé. Pause ensemble. »",
+    do: 'Se mettre à côté, respirer lentement, voix basse.',
+    after: '“Merci d’être revenu. On garde ce qui a aidé.”',
+  },
+  {
+    say: "« On respire d'abord, on parle après. »",
+    do: 'Proposer un outil (sphère / coin calme / pression 20s).',
+    after: '“La prochaine fois, on pause plus tôt.”',
+  },
 ];
 
 const SCRIPT_LIBRARY = [
   {
     title: 'Avant',
     lines: [
-      '« Dans 5 minutes, on change. Tu es prêt ? »',
-      '« Tu préfères commencer par A ou B ? »',
+      '« Dans 5 minutes, on change. Tu veux A ou B ? »',
       '« On commence par le plus facile. »',
+      '« Je suis avec toi, on fait un petit pas. »',
     ],
   },
   {
     title: 'Pendant',
     lines: [
       '« Je vois que ça monte. Pause. »',
-      '« On parle après, pas maintenant. »',
-      '« Je reste avec toi. »',
+      '« Une seule chose : on souffle. »',
+      '« Je reste là. »',
     ],
   },
   {
@@ -88,11 +103,7 @@ const DEFAULT_STATE = {
 
   primaryObjectiveId: OBJECTIVE_LIBRARY[0].id,
 
-  strategies: [
-    '🤲 Appuyer / serrer (20 s)',
-    '🪑 Coin calme (2 min)',
-    '🌬️ Respirer 5 fois',
-  ],
+  strategies: ['🤲 Appuyer / serrer (20 s)', '🪑 Coin calme (2 min)', '🌬️ Respirer 5 fois'],
 
   objectives: OBJECTIVE_LIBRARY.slice(0, 3),
   objectiveStatus: {},
@@ -104,8 +115,14 @@ const DEFAULT_STATE = {
     next: '',
   },
 
-  focus: { skill: '', notes: '' },
-  routines: { morning: '', homework: '', evening: '' },
+  routines: {
+    morning: '',
+    homework: '',
+    evening: '',
+    planBMorning: '',
+    planBHomework: '',
+    planBEvening: '',
+  },
 
   triggerSelections: [],
   triggerNotes: '',
@@ -121,7 +138,9 @@ const DEFAULT_STATE = {
 
 let state = loadState();
 let crisisIndex = 0;
+
 let breathInterval = null;
+let lastOpenedModal = null;
 
 /* =========================================================
    Boot / router
@@ -130,7 +149,6 @@ let breathInterval = null;
 document.addEventListener('DOMContentLoaded', () => {
   const pageAttr = document.body?.dataset?.page;
 
-  // fallback URL (si jamais data-page absent)
   const path = (location.pathname || '').toLowerCase();
   const page =
     pageAttr ||
@@ -138,6 +156,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   ensureObjectiveStatus();
   saveState();
+
+  // Global: Escape ferme la modale la plus récente
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') {
+      if (lastOpenedModal) closeModal(lastOpenedModal);
+    }
+  });
 
   if (page === 'child') initChild();
   if (page === 'parent') initParent();
@@ -156,13 +181,16 @@ function initChild() {
     pauseButton: document.getElementById('pauseButton'),
     toolCard: document.getElementById('toolCard'),
     toolList: document.getElementById('toolList'),
+
     objectiveList: document.getElementById('objectiveList'),
     resetObjectivesBtn: document.getElementById('resetObjectivesBtn'),
+
     tokenCount: document.getElementById('tokenCount'),
     badgeList: document.getElementById('badgeList'),
     rewardOfDay: document.getElementById('rewardOfDay'),
     focusSummary: document.getElementById('focusSummary'),
 
+    // Optionnel si tu l’as dans ton HTML
     breathTrigger: document.getElementById('tool-breath'),
     breathModal: document.getElementById('breath-modal'),
     breathLabel: document.getElementById('breath-label'),
@@ -170,7 +198,6 @@ function initChild() {
   };
 
   renderChild(refs);
-  setupBreath(refs);
 
   refs.meterButtons?.forEach(btn => {
     btn.addEventListener('click', () => handleLevelSelect(Number(btn.dataset.level), refs));
@@ -178,6 +205,7 @@ function initChild() {
 
   refs.pauseButton?.addEventListener('click', () => handlePause(refs));
 
+  // Objectifs semaine (checkbox)
   refs.objectiveList?.addEventListener('change', event => {
     const target = event.target;
     if (!target?.matches?.('input[type="checkbox"]')) return;
@@ -205,21 +233,32 @@ function initChild() {
     renderChild(refs);
     showToast('Objectifs remis à zéro.');
   });
+
+  setupBreath(refs);
+
+  // Freins: mini-modale au clic
+  refs.toolList?.addEventListener('click', event => {
+    const btn = event.target?.closest?.('button[data-strategy]');
+    if (!btn) return;
+    const strategyText = String(btn.dataset.strategy || btn.textContent || '').trim();
+    if (!strategyText) return;
+    openStrategyModal(strategyText);
+  });
 }
 
 function renderChild(refs) {
   refs.meterButtons?.forEach(btn => {
     btn.classList.toggle('is-selected', Number(btn.dataset.level) === state.currentLevel);
+    btn.setAttribute('aria-pressed', Number(btn.dataset.level) === state.currentLevel ? 'true' : 'false');
   });
 
   if (refs.levelStatus) {
     refs.levelStatus.textContent = state.currentLevel
       ? `${EMOTION_LABELS[state.currentLevel]} sélectionné`
-      : 'Choisis ton niveau pour continuer.';
+      : 'Choisis ton niveau.';
   }
 
   const showPause = (state.currentLevel ?? 0) >= 4;
-
   if (refs.pauseCard) refs.pauseCard.hidden = !showPause;
   if (refs.toolCard) refs.toolCard.hidden = !showPause;
 
@@ -252,12 +291,13 @@ function handleLevelSelect(level, refs) {
   saveState();
   renderChild(refs);
 
-  if (level >= 4) showToast('Pause conseillée, on baisse le moteur.');
+  if (level >= 4) showToast('Pause conseillée… on baisse le moteur.');
 }
 
 function handlePause(refs) {
   state.pauseHistory = state.pauseHistory || [];
   state.pauseHistory.push({ timestamp: new Date().toISOString() });
+  if (state.pauseHistory.length > 30) state.pauseHistory.shift();
 
   addTokens(1, 'Pause demandée');
   saveState();
@@ -275,6 +315,8 @@ function renderTools(container) {
     btn.type = 'button';
     btn.className = 'btn';
     btn.textContent = text;
+    btn.dataset.strategy = text;
+    btn.setAttribute('aria-haspopup', 'dialog');
     container.appendChild(btn);
   });
 }
@@ -300,49 +342,160 @@ function renderChildObjectives(list) {
   });
 }
 
-/* ===== respiration ===== */
+/* ===== Respiration (plein écran) ===== */
 
 function setupBreath(refs) {
-  if (!refs.breathTrigger || !refs.breathModal) return;
+  if (!refs.breathTrigger && !refs.breathModal) return;
+
+  const modal = ensureBreathModal(refs.breathModal);
+  const label = modal.querySelector('[data-breath-label]');
+  const closeBtn = modal.querySelector('[data-breath-close]');
+
+  const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
 
   const startBreathText = () => {
-    clearInterval(breathInterval);
+    stopBreathText();
     let inhale = true;
-    if (refs.breathLabel) refs.breathLabel.textContent = 'Inspire…';
+    if (label) label.textContent = 'Inspire…';
 
-    // Ton CSS anime déjà la sphère => ici on fait juste le texte
     breathInterval = setInterval(() => {
       inhale = !inhale;
-      if (refs.breathLabel) refs.breathLabel.textContent = inhale ? 'Inspire…' : 'Expire…';
+      if (label) label.textContent = inhale ? 'Inspire…' : 'Expire…';
     }, 3000);
   };
 
-  const close = () => {
-    refs.breathModal.hidden = true;
-    clearInterval(breathInterval);
-    breathInterval = null;
+  const open = () => {
+    openModal(modal);
+    modal.classList.toggle('reduced-motion', Boolean(reducedMotion));
+    startBreathText();
   };
 
-  refs.breathTrigger.addEventListener('click', () => {
-    refs.breathModal.hidden = false;
-    startBreathText();
+  const close = () => {
+    closeModal(modal);
+    stopBreathText();
+  };
+
+  if (refs.breathTrigger) refs.breathTrigger.addEventListener('click', open);
+
+  closeBtn?.addEventListener('click', close);
+
+  modal.addEventListener('click', event => {
+    if (event.target === modal) close();
   });
 
   refs.breathClose?.addEventListener('click', close);
-
-  refs.breathModal.addEventListener('click', event => {
-    if (event.target === refs.breathModal) close();
-  });
-
-  // échap pour fermer
-  document.addEventListener('keydown', e => {
-    if (e.key === 'Escape' && !refs.breathModal.hidden) close();
-  });
 }
 
-/* =========================================================
-   Parent (robuste, ne crashe pas si des IDs manquent)
-   ========================================================= */
+function stopBreathText() {
+  if (breathInterval) clearInterval(breathInterval);
+  breathInterval = null;
+}
+
+function ensureBreathModal(existing) {
+  if (existing) {
+    existing.classList.add('modal', 'fullscreen');
+    existing.setAttribute('role', 'dialog');
+    existing.setAttribute('aria-modal', 'true');
+
+    if (!existing.querySelector('[data-breath-label]') && document.getElementById('breath-label')) {
+      document.getElementById('breath-label')?.setAttribute('data-breath-label', 'true');
+    }
+    if (!existing.querySelector('[data-breath-close]') && document.getElementById('breath-close')) {
+      document.getElementById('breath-close')?.setAttribute('data-breath-close', 'true');
+    }
+    return existing;
+  }
+
+  const modal = document.createElement('div');
+  modal.id = 'breath-modal';
+  modal.className = 'modal fullscreen';
+  modal.hidden = true;
+  modal.setAttribute('role', 'dialog');
+  modal.setAttribute('aria-modal', 'true');
+  modal.setAttribute('aria-label', 'Respiration avec la sphère');
+
+  const panel = document.createElement('div');
+  panel.className = 'modal-panel breath-panel';
+
+  const sphere = document.createElement('div');
+  sphere.className = 'breath-sphere';
+  sphere.setAttribute('aria-hidden', 'true');
+
+  const label = document.createElement('div');
+  label.className = 'breath-label';
+  label.textContent = 'Inspire…';
+  label.setAttribute('data-breath-label', 'true');
+
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'btn';
+  btn.textContent = "J’ai fini";
+  btn.setAttribute('data-breath-close', 'true');
+
+  panel.append(sphere, label, btn);
+  modal.append(panel);
+  document.body.appendChild(modal);
+  return modal;
+}
+
+/* ===== Freins : mini-modale actionnable ===== */
+
+function openStrategyModal(strategyText) {
+  const { title, instruction, finishText, rewardOnFinish } = getStrategyInstruction(strategyText);
+
+  const modal = ensureMiniModal('strategy-modal', title);
+  const content = modal.querySelector('[data-modal-content]');
+  const finishBtn = modal.querySelector('[data-modal-finish]');
+
+  if (content) content.textContent = instruction;
+
+  finishBtn.onclick = () => {
+    closeModal(modal);
+    if (rewardOnFinish) addTokens(1, 'Bravo');
+    showToast(finishText);
+  };
+
+  openModal(modal);
+}
+
+function getStrategyInstruction(text) {
+  const t = (text || '').toLowerCase();
+
+  if (t.includes('appuyer') || t.includes('serrer') || t.includes('pression')) {
+    return {
+      title: '🤲 Appuyer / serrer',
+      instruction: 'Pose tes mains l’une contre l’autre. Appuie doucement. Relâche. Encore une fois. (Tout doux.)',
+      finishText: 'Bien joué. Ton corps redescend.',
+      rewardOnFinish: true,
+    };
+  }
+
+  if (t.includes('coin') || t.includes('calme')) {
+    return {
+      title: '🪑 Coin calme',
+      instruction: 'Choisis un endroit plus calme. Assieds-toi. Regarde un point fixe. On fait petit à petit.',
+      finishText: 'Bravo. Tu as pris de l’air.',
+      rewardOnFinish: true,
+    };
+  }
+
+  if (t.includes('respirer') || t.includes('souffle') || t.includes('🌬')) {
+    return {
+      title: '🌬️ Respirer',
+      instruction: 'Souffle doucement comme si tu embuais une vitre. Encore 5 fois. Lentement.',
+      finishText: 'Merci. On reprend quand tu veux.',
+      rewardOnFinish: true,
+    };
+  }
+
+  return {
+    title: 'Un petit outil',
+    instruction: 'Fais-le doucement, juste un peu. Tu peux t’arrêter quand tu veux.',
+    finishText: 'Bien joué.',
+    rewardOnFinish: true,
+  };
+}
+/* ====== BLOC 2/3 : PARENT + BILAN + BADGES ====== */
 
 function initParent() {
   const refs = {
@@ -357,14 +510,18 @@ function initParent() {
     content: document.getElementById('parentContent'),
     lockBtn: document.querySelector('[data-action="lock-parent"]'),
 
-    crisisPhrase: document.getElementById('crisisPhrase'),
+    // CRISE
+    crisisSay: document.getElementById('crisisSay'),
+    crisisDo: document.getElementById('crisisDo'),
+    crisisAfter: document.getElementById('crisisAfter'),
     crisisPhraseBtn: document.getElementById('crisisPhraseBtn'),
 
+    // PERSONNALISER
     objectiveChoices: document.getElementById('objectiveChoices'),
     primaryBadge: document.getElementById('primaryObjectiveBadge'),
 
     routineForm: document.getElementById('routineForm'),
-    routineFields: document.querySelectorAll('#routineForm textarea[data-routine]'),
+    routineFields: document.querySelectorAll('#routineForm textarea[data-routine], #routineForm input[data-routine]'),
 
     strategyForm: document.getElementById('strategyForm'),
     strategyFields: document.getElementById('strategyFields'),
@@ -378,9 +535,6 @@ function initParent() {
     plannedNextInput: document.getElementById('plannedNextInput'),
 
     scriptList: document.getElementById('scriptList'),
-
-    pinForm: document.getElementById('pinForm'),
-    pinInputNew: document.getElementById('pinInput'),
   };
 
   renderScripts(refs.scriptList);
@@ -391,13 +545,14 @@ function initParent() {
   updatePinPanels(refs);
 
   setParentLocked(refs, true);
+  renderCrisis(refs);
 
   refs.unlockForm?.addEventListener('submit', event => {
     event.preventDefault();
     if (refs.pinInput?.value?.trim() === state.pin) {
       setParentLocked(refs, false);
       refs.pinInput.value = '';
-      showToast('Tour de contrôle ouverte.');
+      showToast('Tour de contrôle ouvert.');
     } else {
       showToast('Code incorrect.');
     }
@@ -408,7 +563,7 @@ function initParent() {
   refs.pinSetupForm?.addEventListener('submit', event => {
     event.preventDefault();
     const newPin = refs.pinSetupInput?.value?.trim() || '';
-    if (!/^[0-9]{4,6}$/.test(newPin)) return showToast('Code à 4-6 chiffres.');
+    if (!/^[0-9]{4,6}$/.test(newPin)) return showToast('Code à 4–6 chiffres.');
     state.pin = newPin;
     state.pinCustom = true;
     if (refs.pinSetupInput) refs.pinSetupInput.value = '';
@@ -417,21 +572,9 @@ function initParent() {
     showToast('PIN enregistré.');
   });
 
-  refs.pinForm?.addEventListener('submit', event => {
-    event.preventDefault();
-    const newPin = refs.pinInputNew?.value?.trim() || '';
-    if (!/^[0-9]{4,6}$/.test(newPin)) return showToast('Code à 4-6 chiffres.');
-    state.pin = newPin;
-    state.pinCustom = true;
-    if (refs.pinInputNew) refs.pinInputNew.value = '';
-    saveState();
-    updatePinPanels(refs);
-    showToast('PIN mis à jour.');
-  });
-
   refs.crisisPhraseBtn?.addEventListener('click', () => {
     crisisIndex = (crisisIndex + 1) % CRISIS_PHRASES.length;
-    if (refs.crisisPhrase) refs.crisisPhrase.textContent = CRISIS_PHRASES[crisisIndex];
+    renderCrisis(refs);
   });
 
   refs.objectiveChoices?.addEventListener('change', event => {
@@ -451,10 +594,10 @@ function initParent() {
 
   refs.routineForm?.addEventListener('submit', event => {
     event.preventDefault();
-    refs.routineFields?.forEach(area => {
-      const key = area?.dataset?.routine;
+    refs.routineFields?.forEach(field => {
+      const key = field?.dataset?.routine;
       if (!key) return;
-      state.routines[key] = area.value.trim();
+      state.routines[key] = String(field.value || '').trim();
     });
     saveState();
     showToast('Routines sauvegardées.');
@@ -474,9 +617,7 @@ function initParent() {
 
   refs.triggerForm?.addEventListener('submit', event => {
     event.preventDefault();
-    const selections = Array.from(refs.triggerOptions?.querySelectorAll('input:checked') || []).map(
-      i => i.value
-    );
+    const selections = Array.from(refs.triggerOptions?.querySelectorAll('input:checked') || []).map(i => i.value);
     state.triggerSelections = selections;
     state.triggerNotes = refs.triggerOtherInput?.value?.trim() || '';
     saveState();
@@ -492,13 +633,31 @@ function initParent() {
     });
     state.rewards.next = refs.plannedNextInput?.value?.trim() || '';
     saveState();
-    showToast('Récompenses validées.');
+    showToast('Récompenses mises à jour.');
   });
+}
+
+function renderCrisis(refs) {
+  const c = CRISIS_PHRASES[crisisIndex] || CRISIS_PHRASES[0];
+  if (refs.crisisSay) refs.crisisSay.textContent = c.say;
+  if (refs.crisisDo) refs.crisisDo.textContent = c.do;
+  if (refs.crisisAfter) refs.crisisAfter.textContent = c.after;
+
+  const legacy = document.getElementById('crisisPhrase');
+  if (legacy) legacy.textContent = c.say;
 }
 
 function setParentLocked(refs, locked) {
   if (refs.lockBanner) refs.lockBanner.style.display = locked ? 'block' : 'none';
   if (refs.content) refs.content.classList.toggle('is-locked', locked);
+
+  if (refs.content) {
+    const controls = refs.content.querySelectorAll('input, textarea, button, select');
+    controls.forEach(el => {
+      if (el.matches('[data-action="lock-parent"]')) return;
+      el.disabled = Boolean(locked);
+    });
+  }
 }
 
 function updatePinPanels(refs) {
@@ -529,7 +688,7 @@ function renderScripts(container) {
       btn.type = 'button';
       btn.className = 'btn ghost';
       btn.textContent = 'Copier';
-      btn.addEventListener('click', () => navigator.clipboard?.writeText(line));
+      btn.addEventListener('click', () => copyToClipboard(line));
 
       row.append(p, btn);
       card.appendChild(row);
@@ -631,10 +790,10 @@ function renderTriggerOptions(container) {
 }
 
 function populateParentForms(refs) {
-  refs.routineFields?.forEach(area => {
-    const key = area?.dataset?.routine;
+  refs.routineFields?.forEach(field => {
+    const key = field?.dataset?.routine;
     if (!key) return;
-    area.value = state.routines?.[key] || '';
+    field.value = state.routines?.[key] || '';
   });
 
   refs.rewardInputs?.forEach(area => {
@@ -683,6 +842,7 @@ function initBilan() {
     importFile: document.getElementById('importFile'),
   };
 
+  hydrateBilanForms(refs);
   renderEmotionHistory(refs.emotionHistory);
   renderBilanSummary(refs);
   setBilanLocked(refs, true);
@@ -748,6 +908,7 @@ function initBilan() {
         state = mergeState(DEFAULT_STATE, imported);
         ensureObjectiveStatus();
         saveState();
+        hydrateBilanForms(refs);
         renderEmotionHistory(refs.emotionHistory);
         renderBilanSummary(refs);
         showToast('Import réussi.');
@@ -760,9 +921,28 @@ function initBilan() {
   });
 }
 
+function hydrateBilanForms(refs) {
+  Object.entries(refs.childFields || {}).forEach(([key, field]) => {
+    if (!field) return;
+    field.value = state.reviews?.child?.[key] || '';
+  });
+  Object.entries(refs.parentFields || {}).forEach(([key, field]) => {
+    if (!field) return;
+    field.value = state.reviews?.parent?.[key] || '';
+  });
+}
+
 function setBilanLocked(refs, locked) {
   if (refs.lockBanner) refs.lockBanner.style.display = locked ? 'block' : 'none';
   if (refs.content) refs.content.classList.toggle('is-locked', locked);
+
+  if (refs.content) {
+    const controls = refs.content.querySelectorAll('input, textarea, button, select');
+    controls.forEach(el => {
+      if (el.matches('[data-action="lock-bilan"]')) return;
+      el.disabled = Boolean(locked);
+    });
+  }
 }
 
 function renderEmotionHistory(list) {
@@ -791,11 +971,11 @@ function renderBilanSummary(refs) {
       state.reviews?.parent?.risks || state.reviews?.child?.try || 'À compléter.';
   }
   const primary = getPrimaryObjective();
-  if (refs.summaryNext) refs.summaryNext.textContent = primary?.label || state.focus?.skill || 'À définir.';
+  if (refs.summaryNext) refs.summaryNext.textContent = primary?.label || 'À définir.';
 }
 
 /* =========================================================
-   Badges (tu avais les styles, je fournis le rendu)
+   Badges
    ========================================================= */
 
 function renderBadges(container) {
@@ -803,7 +983,11 @@ function renderBadges(container) {
   container.innerHTML = '';
 
   const unlocked = BADGE_RULES.filter(rule => {
-    try { return Boolean(rule.check(state)); } catch { return false; }
+    try {
+      return Boolean(rule.check(state));
+    } catch {
+      return false;
+    }
   });
 
   if (!unlocked.length) {
@@ -813,11 +997,81 @@ function renderBadges(container) {
     return;
   }
 
-  unlocked.forEach(b => {
+  unlocked.slice(0, 3).forEach(b => {
     const li = document.createElement('li');
     li.textContent = `🏷️ ${b.label}`;
     container.appendChild(li);
   });
+}
+/* ====== BLOC 3/3 : MODALES + HELPERS + FIN (fix planBEvening) ====== */
+
+/* =========================================================
+   Modales (mini + plein écran)
+   - Fonctionnent même si le HTML ne contient rien
+   ========================================================= */
+
+function ensureMiniModal(id, title) {
+  let modal = document.getElementById(id);
+  if (modal) {
+    modal.classList.add('modal');
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    return modal;
+  }
+
+  modal = document.createElement('div');
+  modal.id = id;
+  modal.className = 'modal';
+  modal.hidden = true;
+  modal.setAttribute('role', 'dialog');
+  modal.setAttribute('aria-modal', 'true');
+  modal.setAttribute('aria-label', title || 'Boîte de dialogue');
+
+  const panel = document.createElement('div');
+  panel.className = 'modal-panel';
+
+  const h = document.createElement('h2');
+  h.className = 'modal-title';
+  h.textContent = title || 'Un petit outil';
+
+  const p = document.createElement('p');
+  p.className = 'modal-text';
+  p.setAttribute('data-modal-content', 'true');
+
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'btn';
+  btn.textContent = "J’ai fini";
+  btn.setAttribute('data-modal-finish', 'true');
+
+  panel.append(h, p, btn);
+  modal.append(panel);
+  document.body.appendChild(modal);
+
+  // clic fond ferme
+  modal.addEventListener('click', e => {
+    if (e.target === modal) closeModal(modal);
+  });
+
+  return modal;
+}
+
+function openModal(modal) {
+  if (!modal) return;
+  modal.hidden = false;
+  lastOpenedModal = modal;
+
+  // Focus simple : premier bouton à l’intérieur
+  const focusable = modal.querySelector(
+    'button, [href], input, textarea, select, [tabindex]:not([tabindex="-1"])'
+  );
+  focusable?.focus?.();
+}
+
+function closeModal(modal) {
+  if (!modal) return;
+  modal.hidden = true;
+  if (lastOpenedModal === modal) lastOpenedModal = null;
 }
 
 /* =========================================================
@@ -849,17 +1103,30 @@ function saveState() {
 
 function loadState() {
   try {
+    // v2 direct
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return structuredClone(DEFAULT_STATE);
-    return mergeState(DEFAULT_STATE, JSON.parse(raw));
+    if (raw) return mergeState(DEFAULT_STATE, JSON.parse(raw));
+
+    // migration depuis v1 si présent
+    for (const k of LEGACY_KEYS) {
+      const legacy = localStorage.getItem(k);
+      if (legacy) {
+        const migrated = mergeState(DEFAULT_STATE, JSON.parse(legacy));
+        // on sauvegarde en v2 sans supprimer l’ancien (safe)
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated));
+        return migrated;
+      }
+    }
+
+    return deepClone(DEFAULT_STATE);
   } catch (error) {
     console.error('Chargement impossible, retour aux valeurs par défaut.', error);
-    return structuredClone(DEFAULT_STATE);
+    return deepClone(DEFAULT_STATE);
   }
 }
 
 function mergeState(base, override) {
-  if (!override || typeof override !== 'object') return structuredClone(base);
+  if (!override || typeof override !== 'object') return deepClone(base);
   const result = Array.isArray(base) ? [...base] : { ...base };
   Object.keys(base).forEach(key => {
     if (Array.isArray(base[key])) {
@@ -873,7 +1140,7 @@ function mergeState(base, override) {
   return result;
 }
 
-function structuredClone(obj) {
+function deepClone(obj) {
   return JSON.parse(JSON.stringify(obj));
 }
 
@@ -886,7 +1153,7 @@ function splitLines(text) {
 
 function safeCsvCell(value) {
   const cell = value == null ? '' : String(value);
-  if (cell.includes(',') || cell.includes('"')) return `"${cell.replace(/"/g, '""')}"`;
+  if (cell.includes(',') || cell.includes('"') || cell.includes('\n')) return `"${cell.replace(/"/g, '""')}"`;
   return cell;
 }
 
@@ -911,6 +1178,10 @@ function formatDate(ts) {
   }).format(date);
 }
 
+/* =========================================================
+   Fin : objectifs + focus + clipboard
+   ========================================================= */
+
 function ensureObjectiveStatus() {
   if (!state.objectiveStatus) state.objectiveStatus = {};
 
@@ -925,6 +1196,12 @@ function ensureObjectiveStatus() {
   if (!(state.objectives || []).find(obj => obj.id === state.primaryObjectiveId)) {
     state.primaryObjectiveId = state.objectives[0]?.id || null;
   }
+
+  // Compat: routines planB si ancien state
+  if (!state.routines) state.routines = deepClone(DEFAULT_STATE.routines);
+  if (typeof state.routines.planBMorning === 'undefined') state.routines.planBMorning = '';
+  if (typeof state.routines.planBHomework === 'undefined') state.routines.planBHomework = '';
+  if (typeof state.routines.planBEvening === 'undefined') state.routines.planBEvening = '';
 }
 
 function getPrimaryObjective() {
@@ -939,4 +1216,13 @@ function renderFocusSummary(el) {
   if (!el) return;
   const primary = getPrimaryObjective();
   el.textContent = primary ? primary.label : "Ton parent choisira l'objectif ici.";
+}
+
+function copyToClipboard(text) {
+  try {
+    navigator.clipboard?.writeText(text);
+    showToast('Copié.');
+  } catch {
+    showToast('Impossible de copier.');
+  }
 }
