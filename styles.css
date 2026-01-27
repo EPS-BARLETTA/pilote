@@ -68,6 +68,8 @@ p {
   flex-wrap: wrap;
 }
 
+/* Buttons */
+
 .btn {
   width: 100%;
   border: 1px solid var(--border);
@@ -114,7 +116,9 @@ body[data-page="landing"] .container {
   text-align: center;
 }
 
-/* Child cockpit */
+/* =====================
+   CHILD – COCKPIT
+   ===================== */
 
 body[data-page="child"] .container {
   max-width: 520px;
@@ -199,6 +203,10 @@ body[data-page="child"] .container {
   text-align: left;
 }
 
+/* =====================
+   CARNET
+   ===================== */
+
 .carnet {
   margin-top: 8px;
 }
@@ -242,6 +250,10 @@ body[data-page="child"] .container {
   font-weight: 600;
 }
 
+/* =====================
+   MODAL & SPHÈRE
+   ===================== */
+
 .modal {
   position: fixed;
   inset: 0;
@@ -260,25 +272,35 @@ body[data-page="child"] .container {
   text-align: center;
 }
 
+/* 🔵 SPHÈRE RESPIRATION – AMÉLIORÉE */
+
 .breath-sphere {
-  width: 180px;
-  height: 180px;
+  width: 200px;
+  height: 200px;
   border-radius: 999px;
-  margin: 12px auto 10px;
-  background: radial-gradient(circle at 30% 30%, #ffffff, #cfe3ff);
+  margin: 16px auto 12px;
+
+  background: radial-gradient(
+    circle at 30% 25%,
+    #ffffff 0%,
+    #e0ecff 35%,
+    #9ec5fe 65%,
+    #3b82f6 100%
+  );
+
+  box-shadow:
+    0 0 0 12px rgba(59, 130, 246, 0.12),
+    0 0 60px rgba(59, 130, 246, 0.35);
+
+  border: 1px solid rgba(59, 130, 246, 0.25);
+
   animation: breathe 6s ease-in-out infinite;
 }
 
 @keyframes breathe {
-  0% {
-    transform: scale(0.85);
-  }
-  50% {
-    transform: scale(1.1);
-  }
-  100% {
-    transform: scale(0.85);
-  }
+  0% { transform: scale(0.85); }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(0.85); }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -287,7 +309,35 @@ body[data-page="child"] .container {
   }
 }
 
-/* Parent & bilan reuse */
+/* =====================
+   LISTES & BADGES
+   ===================== */
+
+.badge-list,
+.anchor-list,
+.objective-list,
+.history-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.objective-list li {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 8px 10px;
+}
+
+.objective-list li.completed {
+  background: rgba(42, 176, 157, 0.12);
+}
+
+/* =====================
+   PARENT & BILAN
+   ===================== */
 
 .dashboard .grid {
   display: grid;
@@ -372,7 +422,9 @@ body[data-page="child"] .container {
   border-radius: 14px;
 }
 
-/* Toast */
+/* =====================
+   TOAST
+   ===================== */
 
 .toast {
   position: fixed;
@@ -393,101 +445,12 @@ body[data-page="child"] .container {
   transform: translateY(0);
 }
 
+/* Responsive */
+
 @media (max-width: 720px) {
   .row,
   .card-head {
     flex-direction: column;
     align-items: flex-start;
   }
-}
-.trigger-options {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.trigger-pill {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  padding: 6px 10px;
-}
-.scripts {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 10px;
-}
-
-.script-card {
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 12px;
-  background: #f8faff;
-}
-
-.script-line {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 6px;
-}
-
-.script-line p {
-  margin: 0;
-  flex: 1;
-}
-
-.objective-choices {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 10px;
-}
-
-.objective-choice {
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 10px;
-  display: flex;
-  gap: 8px;
-  align-items: flex-start;
-}
-
-.choice-extra {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 0.85rem;
-  color: var(--muted);
-}
-
-.badge-list,
-.anchor-list,
-.objective-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.objective-list li {
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 8px 10px;
-}
-
-.objective-list li.completed {
-  background: rgba(42, 176, 157, 0.12);
-}
-
-.history-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
 }
