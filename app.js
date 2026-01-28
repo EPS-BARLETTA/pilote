@@ -277,6 +277,13 @@ function initLanding() {
     copyMonthList: document.getElementById('copyMonthList'),
     copyMonthInput: document.getElementById('copyMonthInput'),
     addCopyMonth: document.getElementById('addCopyMonth'),
+    printWeekButton: document.getElementById('printWeekButton'),
+    printModal: document.getElementById('printOptionsModal'),
+    printDaySelect: document.getElementById('printDaySelect'),
+    printDaySubmit: document.getElementById('printDaySubmit'),
+    printWeekSubmit: document.getElementById('printWeekSubmit'),
+    closePrintModalBtn: document.getElementById('closePrintModal'),
+    cancelPrintModalBtn: document.getElementById('cancelPrintModal'),
     copyForm: document.getElementById('copyDayForm'),
     copyCancel: document.getElementById('cancelCopyDay'),
     copyClose: document.getElementById('closeCopyDay'),
@@ -424,6 +431,18 @@ function initLanding() {
     }
     addCopyMonthBlock(refs, value);
     if (refs.copyMonthInput) refs.copyMonthInput.value = nextMonthValue(value);
+  });
+
+  refs.printWeekButton?.addEventListener('click', () => openPrintModal(refs));
+  refs.printDaySubmit?.addEventListener('click', () => handlePrintDaySubmit(refs));
+  refs.printWeekSubmit?.addEventListener('click', () => {
+    closePrintModal(refs);
+    handlePrintWeek(refs);
+  });
+  refs.closePrintModalBtn?.addEventListener('click', () => closePrintModal(refs));
+  refs.cancelPrintModalBtn?.addEventListener('click', () => closePrintModal(refs));
+  refs.printModal?.addEventListener('click', e => {
+    if (e.target === refs.printModal) closePrintModal(refs);
   });
 
   refs.exportCalendar?.addEventListener('click', () => exportLandingCalendar());
@@ -700,6 +719,35 @@ function closeCopyDayModal(refs) {
   refs.copyMonthList && (refs.copyMonthList.innerHTML = '');
 }
 
+function openPrintModal(refs) {
+  if (!refs?.printModal) return;
+  renderPrintDayOptions(refs);
+  refs.printModal.hidden = false;
+  refs.printModal.setAttribute('aria-hidden', 'false');
+  document.body.classList.add('no-scroll');
+  refs.printDaySelect?.focus?.();
+}
+
+function closePrintModal(refs) {
+  if (!refs?.printModal) return;
+  refs.printModal.hidden = true;
+  refs.printModal.setAttribute('aria-hidden', 'true');
+  document.body.classList.remove('no-scroll');
+}
+
+function renderPrintDayOptions(refs) {
+  if (!refs?.printDaySelect) return;
+  const weekDates = getWeekDates(landingWeekAnchor || new Date());
+  refs.printDaySelect.innerHTML = weekDates
+    .map(date => {
+      const key = toDateKey(date);
+      const label = capitalizeLabel(DAY_FULL_FORMAT.format(date));
+      return `<option value="${key}">${label}</option>`;
+    })
+    .join('');
+  refs.printDaySelect.value = landingSelectedDate;
+}
+
 function renderCopyWeekTargets(refs) {
   if (!refs?.copyWeekTargets) return;
   const weekDates = getWeekDates(landingWeekAnchor || new Date());
@@ -877,6 +925,130 @@ function getBlockWeekdays(block) {
   return Array.from(block.querySelectorAll('input[data-weekday]'))
     .filter(input => input.checked)
     .map(input => Number(input.dataset.weekday));
+}
+
+function handlePrintDaySubmit(refs) {
+  const value = refs.printDaySelect?.value;
+  if (!value) {
+    alert('Choisis un jour à imprimer.');
+    return;
+  }
+  closePrintModal(refs);
+  handlePrintDay(refs, value);
+}
+
+function handlePrintDay(refs, dateKey) {
+  const node = buildPrintDay(dateKey);
+  openPrintWindow(`Journée – ${node.querySelector('h3')?.textContent || ''}`, [node]);
+}
+
+function handlePrintWeek(refs) {
+  const nodes = getWeekDates(landingWeekAnchor || new Date()).map(date => buildPrintDay(toDateKey(date)));
+  openPrintWindow('Semaine apaisée', nodes);
+}
+
+function buildPrintDay(dateKey) {
+  const date = parseDateKey(dateKey) || new Date();
+  const section = document.createElement('section');
+  section.className = 'card day-column print-day';
+
+  const header = document.createElement('div');
+  header.className = 'day-header';
+  const info = document.createElement('div');
+  const eyebrow = document.createElement('p');
+  eyebrow.className = 'eyebrow';
+  eyebrow.textContent = 'Journée';
+  const title = document.createElement('h3');
+  title.textContent = capitalizeLabel(DAY_FULL_FORMAT.format(date));
+  info.append(eyebrow, title);
+  header.append(info);
+  section.appendChild(header);
+
+  const list = document.createElement('ul');
+  list.className = 'calendar-tasks';
+  const tasks = [...(state.landing.calendar[dateKey] || [])].sort((a, b) =>
+    (a.time || '').localeCompare(b.time || '')
+  );
+  if (!tasks.length) {
+    const empty = document.createElement('li');
+    empty.className = 'calendar-task empty';
+    empty.textContent = 'Aucune étape prévue.';
+    list.appendChild(empty);
+  } else {
+    tasks.forEach(task => list.appendChild(buildPrintTask(task)));
+  }
+
+  section.appendChild(list);
+  return section;
+}
+
+function buildPrintTask(task) {
+  const li = document.createElement('li');
+  li.className = 'print-task-block';
+  const color = getTaskColor(task);
+  li.style.borderColor = color.border;
+
+  const header = document.createElement('div');
+  header.className = 'print-task-header';
+
+  const emoji = document.createElement('span');
+  emoji.textContent = task.emoji || '⭐️';
+
+  const label = document.createElement('span');
+  label.textContent = task.label || '';
+
+  header.append(emoji, label);
+
+  const meta = document.createElement('div');
+  meta.className = 'print-task-meta';
+
+  const timeEl = document.createElement('strong');
+  timeEl.textContent = formatTaskTime(task);
+
+  const status = document.createElement('span');
+  status.textContent = task.completed ? '✅ Étape réalisée' : '◻️ À faire';
+  status.style.color = task.completed ? '#1f7a5c' : '#5b677a';
+
+  meta.append(timeEl, status);
+
+  const note = document.createElement('div');
+  note.className = 'print-task-note';
+  note.textContent = 'Notes :';
+
+  li.append(header, meta, note);
+  return li;
+}
+
+function openPrintWindow(title, nodes) {
+  const win = window.open('', '_blank');
+  if (!win) {
+    alert('Impossible d’ouvrir la fenêtre d’impression (bloqueur de pop-up ?).');
+    return;
+  }
+  const stylesheet = document.querySelector('link[rel="stylesheet"]')?.getAttribute('href') || 'styles.css';
+  const content = nodes.map(node => node.outerHTML).join('');
+  win.document.write(`<!DOCTYPE html>
+  <html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <title>${title}</title>
+    <link rel="stylesheet" href="${stylesheet}" />
+    <style>
+      body { background: #fff; padding: 20px; }
+      main { max-width: 760px; margin: 0 auto; }
+      .day-column { break-after: page; }
+      .calendar-task button,
+      .calendar-task .calendar-task-checkbox input { display: none !important; }
+    </style>
+  </head>
+  <body>
+    <main>${content}</main>
+    <script>
+      window.addEventListener('load', () => setTimeout(() => window.print(), 150));
+    </script>
+  </body>
+  </html>`);
+  win.document.close();
 }
 
 function exportLandingCalendar() {

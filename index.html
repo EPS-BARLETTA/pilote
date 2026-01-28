@@ -87,6 +87,7 @@
           <button type="button" class="btn ghost btn-small" id="exportCalendar">Exporter</button>
           <button type="button" class="btn ghost btn-small" id="importCalendar">Importer</button>
           <input type="file" id="importCalendarInput" accept="application/json" hidden />
+          <button type="button" class="btn ghost btn-small" id="printWeekButton">Imprimer</button>
         </div>
       </div>
 
@@ -214,6 +215,23 @@
             <button type="submit" class="btn btn-primary">Appliquer</button>
           </div>
         </form>
+      </div>
+    </div>
+
+    <div id="printOptionsModal" class="day-copy-modal" hidden aria-hidden="true">
+      <div class="day-copy-panel">
+        <button type="button" class="day-fullscreen-close" aria-label="Fermer l’impression" id="closePrintModal">
+          ×
+        </button>
+        <p class="eyebrow">Choisir ce que tu imprimes</p>
+        <h3>Calendrier apaisé</h3>
+        <label for="printDaySelect" class="small">Jour à imprimer</label>
+        <select id="printDaySelect"></select>
+        <div class="copy-day-actions">
+          <button type="button" class="btn ghost" id="cancelPrintModal">Annuler</button>
+          <button type="button" class="btn ghost" id="printDaySubmit">Imprimer cette journée</button>
+          <button type="button" class="btn btn-primary" id="printWeekSubmit">Imprimer la semaine</button>
+        </div>
       </div>
     </div>
 
