@@ -175,7 +175,33 @@ body[data-page="landing"] {
   background: rgba(255, 255, 255, 0.86);
 }
 
-.portal-grid {
+.portal-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.portal-row {
+  width: 100%;
+}
+
+.portal-row-primary,
+.portal-row-secondary {
+  max-width: 960px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.portal-row-primary {
+  display: flex;
+  justify-content: center;
+}
+
+.portal-row-primary .portal {
+  width: min(100%, 420px);
+}
+
+.portal-row-secondary {
   display: grid;
   gap: 16px;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
@@ -195,6 +221,7 @@ body[data-page="landing"] {
 .portal-child { background: linear-gradient(145deg, #f0f4ff, #e6f6ff); }
 .portal-parent { background: linear-gradient(145deg, #fff4ef, #f8edff); }
 .portal-bilan { background: linear-gradient(145deg, #f5fff7, #eef6ff); }
+.portal-calendar { background: linear-gradient(145deg, #fff7eb, #f7f9ff); }
 
 .portal-header {
   display: flex;
@@ -313,8 +340,71 @@ body[data-page="landing"] {
   margin: 16px 0 0;
   padding: 0;
   display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.calendar-tasks-stack {
+  flex-direction: column;
+  flex-wrap: nowrap;
+}
+
+.calendar-tasks-stack .calendar-column,
+.calendar-tasks-stack .calendar-midday-block {
+  width: 100%;
+  flex-basis: auto;
+}
+
+.calendar-tasks-stack .calendar-column {
+  min-width: unset;
+}
+
+.calendar-column {
+  flex: 1 1 280px;
+  min-width: 240px;
+  border-radius: 24px;
+  padding: 14px;
+  background: rgba(247, 250, 255, 0.8);
+  box-shadow: inset 0 0 0 1px rgba(24, 34, 48, 0.04);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.calendar-column-morning { order: 1; }
+.calendar-column-afternoon { order: 3; }
+.calendar-column-evening { order: 4; }
+
+.calendar-column-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.calendar-task-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+.calendar-midday-block {
+  flex-basis: 100%;
+  order: 2;
+  padding: 14px;
+  background: rgba(253, 248, 230, 0.8);
+  border-radius: 20px;
+  border: 1px dashed rgba(24, 34, 48, 0.2);
+}
+
+.calendar-midday-block .calendar-task-list {
+  margin-top: 10px;
+}
+
+.calendar-midday-block .eyebrow {
+  margin-bottom: 4px;
 }
 
 .calendar-task {
@@ -466,6 +556,10 @@ body[data-page="landing"] {
     min-height: auto;
   }
 
+  .portal-row-primary .portal {
+    width: 100%;
+  }
+
   .calendar-week {
     grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   }
@@ -493,11 +587,30 @@ body[data-page="landing"] {
   padding: 28px;
   box-shadow: 0 30px 80px rgba(0, 0, 0, 0.12);
   position: relative;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.day-fullscreen-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 12px;
 }
 
 .day-fullscreen .calendar-task {
   background: var(--task-bg, #fff);
   border-color: var(--task-border, rgba(24, 34, 48, 0.12));
+}
+
+.day-fullscreen-panel-print {
+  width: 100%;
+  max-height: none;
+  box-shadow: none;
+  position: static;
+}
+
+.day-fullscreen-panel-print .calendar-tasks {
+  margin-top: 18px;
 }
 
 .day-fullscreen-close {
@@ -513,6 +626,15 @@ body[data-page="landing"] {
 
 body.no-scroll {
   overflow: hidden;
+}
+
+body.calendar-focus .container > :not(.day-fullscreen) {
+  filter: blur(6px);
+  pointer-events: none;
+}
+
+body.calendar-focus .day-fullscreen {
+  background: rgba(24, 34, 48, 0.75);
 }
 
 .day-copy-modal {
@@ -730,41 +852,55 @@ body[data-page="bilan"] .dashboard .card:nth-of-type(3n) {
   background: #f4f7ff;
 }
 
-.print-task-block {
-  list-style: none;
-  border: 2px solid rgba(24, 34, 48, 0.15);
-  border-radius: 18px;
-  padding: 12px 16px;
-  margin: 10px 0;
-  background: #fffefe;
-}
-
-.print-task-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 8px;
-}
-
-.print-task-header span {
-  font-weight: 700;
-  font-size: 1.1rem;
-}
-
-.print-task-meta {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+.print-week-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 14px;
   font-size: 0.95rem;
 }
 
-.print-task-note {
-  margin-top: 8px;
-  border-top: 1px dashed rgba(24, 34, 48, 0.2);
-  padding-top: 6px;
-  min-height: 28px;
+.print-week-table th,
+.print-week-table td {
+  border: 1px solid rgba(24, 34, 48, 0.18);
+  padding: 8px 10px;
+  vertical-align: top;
+}
+
+.print-week-table thead th {
+  background: rgba(87, 120, 255, 0.08);
+  text-align: left;
   font-size: 0.9rem;
-  color: rgba(24, 34, 48, 0.7);
+  letter-spacing: 0.02em;
+}
+
+.print-week-table td:nth-child(2) {
+  text-align: center;
+}
+
+.print-week-table th {
+  text-align: center;
+}
+
+.print-week-table th[scope="row"] {
+  text-align: left;
+  width: 80px;
+  font-weight: 600;
+}
+
+.print-week-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 48px;
+}
+
+.print-week-cell strong {
+  font-size: 0.9rem;
+}
+
+.print-checkbox {
+  font-size: 1.2rem;
+  text-align: center;
 }
 
 
@@ -819,6 +955,32 @@ body[data-page="bilan"] .dashboard .card:nth-of-type(3n) {
 .child-hero {
   background: #fff3e0;
   border: 1px solid rgba(255, 186, 122, 0.4);
+}
+
+.child-identity {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.child-emoji-badge {
+  width: 70px;
+  height: 70px;
+  border-radius: 24px;
+  background: #fff;
+  border: 1px solid rgba(24, 34, 48, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.2rem;
+  overflow: hidden;
+  box-shadow: 0 10px 24px rgba(24, 34, 48, 0.08);
+}
+
+.child-emoji-badge img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 .child-nav { display: flex; gap: 8px; }
@@ -1100,6 +1262,11 @@ body[data-page="bilan"] .dashboard .card:nth-of-type(3n) {
 
   .meter { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+
+.print-day {
+  margin-bottom: 32px;
+}
+
 #printDay .calendar-tasks .calendar-task button,
 #printWeek .calendar-tasks .calendar-task button,
 #printDay .calendar-tasks .calendar-task .calendar-task-checkbox input,

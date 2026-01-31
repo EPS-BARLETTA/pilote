@@ -26,214 +26,72 @@
     </header>
 
     <section class="card landing-portals" aria-label="Choix des espaces">
-      <div class="portal-grid">
-        <article class="portal portal-child">
-          <div class="portal-header">
-            <div class="portal-emoji" id="childEmojiDisplay" aria-hidden="true">🚀</div>
-            <div>
-              <p class="eyebrow">Espace enfant</p>
-              <h2>Mon cockpit</h2>
-              <p class="small">Je me pose, je respire, je choisis mon outil.</p>
+      <div class="portal-rows">
+        <div class="portal-row portal-row-primary">
+          <article class="portal portal-child">
+            <div class="portal-header">
+              <div class="portal-emoji" id="childEmojiDisplay" aria-hidden="true">🚀</div>
+              <div>
+                <p class="eyebrow">Espace enfant</p>
+                <h2>Mon cockpit</h2>
+                <p class="small">Je me pose, je respire, je choisis mon outil.</p>
+              </div>
             </div>
-          </div>
-          <label class="small" for="childEmojiSelect">Choisir l’emoji du jour</label>
-          <select id="childEmojiSelect" class="emoji-select" aria-label="Emoji de l’espace enfant">
-            <option value="🚀">🚀 Fusée</option>
-            <option value="🪁">🪁 Cerf-volant</option>
-            <option value="🦋">🦋 Papillon</option>
-            <option value="🌈">🌈 Arc-en-ciel</option>
-            <option value="🌙">🌙 Lune</option>
-          </select>
-          <a class="btn btn-primary" href="enfant.html">Ouvrir l’espace enfant</a>
-        </article>
-
-        <article class="portal portal-parent">
-          <div class="portal-header">
-            <div class="portal-emoji" aria-hidden="true">🛟</div>
-            <div>
-              <p class="eyebrow">Tour de contrôle</p>
-              <h2>Espace parent</h2>
-              <p class="small">Objectifs, routines, scripts et récompenses personnalisés.</p>
-            </div>
-          </div>
-          <a class="btn" href="parent.html">Ouvrir l’espace parent</a>
-        </article>
-
-        <article class="portal portal-bilan">
-          <div class="portal-header">
-            <div class="portal-emoji" aria-hidden="true">🤝</div>
-            <div>
-              <p class="eyebrow">Temps de compréhension</p>
-              <h2>Ensemble</h2>
-              <p class="small">On partage les ressentis, on garde la mémoire et on exporte si besoin.</p>
-            </div>
-          </div>
-          <a class="btn" href="bilan.html">Ouvrir l’espace bilan</a>
-        </article>
-      </div>
-    </section>
-
-    <section class="card landing-calendar" aria-label="Organisation de la journée">
-      <div class="calendar-header">
-        <div>
-          <p class="eyebrow">Routine apaisée</p>
-          <h2>Calendrier de la journée et de la semaine</h2>
-          <p class="small">
-            On remplit la semaine ensemble, puis on tapote une journée pour voir ses étapes. Chaque tâche peut avoir son
-            emoji (sport, musique, détente…) et tout reste enregistré en local.
-          </p>
-        </div>
-        <div class="calendar-tools">
-          <button type="button" class="btn ghost btn-small" id="exportCalendar">Exporter</button>
-          <button type="button" class="btn ghost btn-small" id="importCalendar">Importer</button>
-          <input type="file" id="importCalendarInput" accept="application/json" hidden />
-          <button type="button" class="btn ghost btn-small" id="printWeekButton">Imprimer</button>
-        </div>
-      </div>
-
-      <div class="calendar-week-nav">
-        <button class="btn ghost calendar-nav" id="weekPrev" type="button" aria-label="Semaine précédente">‹</button>
-        <div class="calendar-week" id="calendarWeek" aria-live="polite"></div>
-        <button class="btn ghost calendar-nav" id="weekNext" type="button" aria-label="Semaine suivante">›</button>
-      </div>
-
-      <div class="calendar-day-view">
-        <div class="day-column">
-          <div class="day-header">
-            <div>
-              <p class="eyebrow">Journée choisie</p>
-              <h3 id="selectedDayLabel">Aujourd’hui</h3>
-            </div>
-            <div class="day-header-actions">
-              <button type="button" class="btn ghost btn-small" id="openCopyDay">Dupliquer</button>
-              <button type="button" class="btn ghost btn-small" id="openDayFullscreen">
-                Plein écran
-              </button>
-            </div>
-          </div>
-          <ul id="dayTaskList" class="calendar-tasks" aria-live="polite"></ul>
-        </div>
-        <form id="dayTaskForm" class="task-form">
-          <p class="eyebrow">Ajouter une étape</p>
-          <div class="task-fields">
-            <label class="sr-only" for="taskEmoji">Emoji</label>
-            <select id="taskEmoji" name="emoji" class="emoji-select" aria-label="Emoji de la tâche">
-              <optgroup label="Maison & routines">
-                <option value="⏰">⏰ Réveil</option>
-                <option value="🥐">🥐 Petit déjeuner</option>
-                <option value="🍽️">🍽️ Déjeuner</option>
-                <option value="🍪">🍪 Goûter</option>
-                <option value="🍲">🍲 Souper</option>
-                <option value="🚽">🚽 Toilette</option>
-                <option value="🎒">🎒 Préparer l’école</option>
-                <option value="🏠">🏠 Maison relais</option>
-                <option value="🪥">🪥 Brossage de dents</option>
-                <option value="🛁">🛁 Préparer le coucher</option>
-                <option value="🌙">🌙 Coucher</option>
-                <option value="☁️">☁️ Temps pour moi</option>
-              </optgroup>
-              <optgroup label="École & apprentissages">
-                <option value="🏫">🏫 École</option>
-                <option value="📚">📚 Lecture</option>
-                <option value="📝">📝 Faire les devoirs</option>
-              </optgroup>
-              <optgroup label="Activités & détente">
-                <option value="⚽️">⚽️ Sport</option>
-                <option value="🏊">🏊 Piscine</option>
-                <option value="🎵">🎵 Musique</option>
-                <option value="🎨">🎨 Activité extra scolaire</option>
-                <option value="🚶‍♂️">🚶‍♂️ Balade</option>
-                <option value="🧘">🧘 Calme</option>
-                <option value="🎮">🎮 Jeu</option>
-              </optgroup>
-              <optgroup label="Personnalisé">
-                <option value="custom">⭐️ Autre (je choisis l’emoji)</option>
+            <label class="small" for="childEmojiSelect">Choisir l’emoji du jour</label>
+            <select id="childEmojiSelect" class="emoji-select" aria-label="Emoji de l’espace enfant">
+              <option value="🚀">🚀 Fusée</option>
+              <option value="🪁">🪁 Cerf-volant</option>
+              <option value="🦋">🦋 Papillon</option>
+              <option value="🌈">🌈 Arc-en-ciel</option>
+              <option value="🌙">🌙 Lune</option>
+              <optgroup label="Dossier Pokémon">
+                <option value="img:pokemon/Capture d’écran 2026-01-31 à 20.12.35.png">Pikachu – énergie</option>
+                <option value="img:pokemon/Capture d’écran 2026-01-31 à 20.14.17.png">Pikachu – sourire</option>
               </optgroup>
             </select>
-            <div id="customEmojiFields" class="custom-emoji-fields" aria-live="polite">
-              <label class="sr-only" for="customEmojiInput">Emoji personnalisé</label>
-              <input
-                type="text"
-                id="customEmojiInput"
-                maxlength="3"
-                placeholder="Emoji"
-                aria-label="Emoji personnalisé"
-              />
-            </div>
-            <label class="sr-only" for="taskTime">Heure</label>
-            <input id="taskTime" name="time" type="time" />
-            <label class="sr-only" for="taskEndTime">Fin</label>
-            <input id="taskEndTime" name="endTime" type="time" placeholder="Fin" />
-            <label class="sr-only" for="taskLabel">Description</label>
-            <input id="taskLabel" name="label" type="text" placeholder="Description" maxlength="60" required />
-          </div>
-          <button type="submit" class="btn btn-primary">Ajouter à cette journée</button>
-        </form>
-      </div>
-    </section>
+            <a class="btn btn-primary" href="enfant.html">Ouvrir l’espace enfant</a>
+          </article>
+        </div>
 
-    <div id="dayFullscreen" class="day-fullscreen" hidden aria-hidden="true">
-      <div class="day-fullscreen-panel" role="dialog" aria-modal="true" aria-labelledby="fullscreenDayLabel">
-        <button type="button" class="day-fullscreen-close" aria-label="Fermer la vue journée" id="closeDayFullscreen">
-          ×
-        </button>
-        <p class="eyebrow">Journée complète</p>
-        <h3 id="fullscreenDayLabel">Aujourd’hui</h3>
-        <ul id="dayTaskFullscreenList" class="calendar-tasks"></ul>
-      </div>
-    </div>
-
-    <div id="copyDayModal" class="day-copy-modal" hidden aria-hidden="true">
-      <div class="day-copy-panel" role="dialog" aria-modal="true" aria-labelledby="copyDayTitle">
-        <button type="button" class="day-fullscreen-close" aria-label="Fermer la copie" id="closeCopyDay">
-          ×
-        </button>
-        <p class="eyebrow">Copier cette journée</p>
-        <h3 id="copyDayTitle">Choisis les jours à remplir</h3>
-        <form id="copyDayForm">
-          <section class="copy-section">
-            <p class="micro-copy">Cette semaine</p>
-            <div id="copyWeekTargets" class="copy-day-targets"></div>
-          </section>
-          <section class="copy-section">
-            <div class="copy-month-header">
+        <div class="portal-row portal-row-secondary">
+          <article class="portal portal-parent">
+            <div class="portal-header">
+              <div class="portal-emoji" aria-hidden="true">🛟</div>
               <div>
-                <label for="copyMonthInput" class="small">Ajouter un mois</label>
-                <input type="month" id="copyMonthInput" />
+                <p class="eyebrow">Tour de contrôle</p>
+                <h2>Espace parent</h2>
+                <p class="small">Objectifs, routines, scripts et récompenses personnalisés.</p>
               </div>
-              <button type="button" class="btn ghost btn-small" id="addCopyMonth">Ajouter ce mois</button>
             </div>
-            <div id="copyMonthList" class="copy-month-list"></div>
-          </section>
-          <p class="micro-copy">
-            Les routines sélectionnées remplaceront les étapes déjà présentes sur ces journées (tu pourras ensuite
-            ajuster).
-          </p>
-          <div class="copy-day-actions">
-            <button type="button" class="btn ghost" id="applyYearButton">Enregistrer à l’année</button>
-            <button type="button" class="btn ghost" id="cancelCopyDay">Annuler</button>
-            <button type="submit" class="btn btn-primary">Appliquer</button>
-          </div>
-        </form>
-      </div>
-    </div>
+            <a class="btn" href="parent.html">Ouvrir l’espace parent</a>
+          </article>
 
-    <div id="printOptionsModal" class="day-copy-modal" hidden aria-hidden="true">
-      <div class="day-copy-panel">
-        <button type="button" class="day-fullscreen-close" aria-label="Fermer l’impression" id="closePrintModal">
-          ×
-        </button>
-        <p class="eyebrow">Choisir ce que tu imprimes</p>
-        <h3>Calendrier apaisé</h3>
-        <label for="printDaySelect" class="small">Jour à imprimer</label>
-        <select id="printDaySelect"></select>
-        <div class="copy-day-actions">
-          <button type="button" class="btn ghost" id="cancelPrintModal">Annuler</button>
-          <button type="button" class="btn ghost" id="printDaySubmit">Imprimer cette journée</button>
-          <button type="button" class="btn btn-primary" id="printWeekSubmit">Imprimer la semaine</button>
+          <article class="portal portal-calendar">
+            <div class="portal-header">
+              <div class="portal-emoji" aria-hidden="true">🗓️</div>
+              <div>
+                <p class="eyebrow">Routine apaisée</p>
+                <h2>Calendrier</h2>
+                <p class="small">On remplit la semaine ensemble puis on explore chaque journée.</p>
+              </div>
+            </div>
+            <a class="btn" href="calendrier.html">Ouvrir le calendrier</a>
+          </article>
+
+          <article class="portal portal-bilan">
+            <div class="portal-header">
+              <div class="portal-emoji" aria-hidden="true">🤝</div>
+              <div>
+                <p class="eyebrow">Temps de compréhension</p>
+                <h2>Ensemble</h2>
+                <p class="small">On partage les ressentis, on garde la mémoire et on exporte si besoin.</p>
+              </div>
+            </div>
+            <a class="btn" href="bilan.html">Ouvrir l’espace bilan</a>
+          </article>
         </div>
       </div>
-    </div>
+    </section>
 
     <footer class="micro-copy landing-footer">
       Astuce : ajoute la page à l’écran d’accueil pour un usage “app” sur tablette ou smartphone.

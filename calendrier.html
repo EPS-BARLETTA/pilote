@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PILOTE – Calendrier apaisé</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600&display=swap"
+    rel="stylesheet"
+  />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body data-page="calendar">
+  <main class="container calendar-page">
+    <header class="card landing-hero calendar-hero">
+      <p class="eyebrow">Routine apaisée</p>
+      <h1>Calendrier</h1>
+      <p>
+        On prépare la semaine ensemble, on duplique ce qui fonctionne et on imprime les journées quand on en a besoin.
+      </p>
+      <nav class="row" aria-label="Navigation">
+        <a class="btn ghost" href="index.html">← Accueil</a>
+        <a class="btn ghost" href="enfant.html">Mon cockpit</a>
+        <a class="btn ghost" href="parent.html">Espace parent</a>
+        <a class="btn ghost" href="bilan.html">Ensemble</a>
+      </nav>
+    </header>
+
+    <section class="card landing-calendar" aria-label="Organisation de la journée">
+      <div class="calendar-header">
+        <div>
+          <p class="eyebrow">Routine apaisée</p>
+          <h2>Calendrier de la journée et de la semaine</h2>
+          <p class="small">
+            On remplit la semaine ensemble, puis on tapote une journée pour voir ses étapes. Chaque tâche peut avoir son
+            emoji (sport, musique, détente…) et tout reste enregistré en local.
+          </p>
+        </div>
+        <div class="calendar-tools">
+          <button type="button" class="btn ghost btn-small" id="exportCalendar">Exporter</button>
+          <button type="button" class="btn ghost btn-small" id="importCalendar">Importer</button>
+          <input type="file" id="importCalendarInput" accept="application/json" hidden />
+          <button type="button" class="btn ghost btn-small" id="printWeekButton">Imprimer</button>
+        </div>
+      </div>
+
+      <div class="calendar-week-nav">
+        <button class="btn ghost calendar-nav" id="weekPrev" type="button" aria-label="Semaine précédente">‹</button>
+        <div class="calendar-week" id="calendarWeek" aria-live="polite"></div>
+        <button class="btn ghost calendar-nav" id="weekNext" type="button" aria-label="Semaine suivante">›</button>
+      </div>
+
+      <div class="calendar-day-view">
+        <div class="day-column">
+          <div class="day-header">
+            <div>
+              <p class="eyebrow">Journée choisie</p>
+              <h3 id="selectedDayLabel">Aujourd’hui</h3>
+            </div>
+            <div class="day-header-actions">
+              <button type="button" class="btn ghost btn-small" id="openCopyDay">Dupliquer</button>
+              <button type="button" class="btn ghost btn-small" id="openDayFullscreen">
+                Plein écran
+              </button>
+            </div>
+          </div>
+          <ul id="dayTaskList" class="calendar-tasks" aria-live="polite"></ul>
+        </div>
+        <form id="dayTaskForm" class="task-form">
+          <p class="eyebrow">Ajouter une étape</p>
+          <div class="task-fields">
+            <label class="sr-only" for="taskEmoji">Emoji</label>
+            <select id="taskEmoji" name="emoji" class="emoji-select" aria-label="Emoji de la tâche">
+              <option value="custom">⭐️ Autre (je choisis l’emoji)</option>
+              <optgroup label="Maison & routines">
+                <option value="⏰">⏰ Réveil</option>
+                <option value="🥐">🥐 Petit déjeuner</option>
+                <option value="🍽️">🍽️ Déjeuner</option>
+                <option value="🍪">🍪 Goûter</option>
+                <option value="🍲">🍲 Souper</option>
+                <option value="🚽">🚽 Toilette</option>
+                <option value="🎒">🎒 Préparer l’école</option>
+                <option value="🏠">🏠 Maison relais</option>
+                <option value="🪥">🪥 Brossage de dents</option>
+                <option value="🛁">🛁 Préparer le coucher</option>
+                <option value="🌙">🌙 Coucher</option>
+                <option value="☁️">☁️ Temps pour moi</option>
+              </optgroup>
+              <optgroup label="École & apprentissages">
+                <option value="🏫">🏫 École</option>
+                <option value="📚">📚 Lecture</option>
+                <option value="📝">📝 Faire les devoirs</option>
+              </optgroup>
+              <optgroup label="Activités & détente">
+                <option value="⚽️">⚽️ Sport</option>
+                <option value="🏊">🏊 Piscine</option>
+                <option value="🎵">🎵 Musique</option>
+                <option value="🎨">🎨 Activité extra scolaire</option>
+                <option value="🚶‍♂️">🚶‍♂️ Balade</option>
+                <option value="🧘">🧘 Calme</option>
+                <option value="🎮">🎮 Jeu</option>
+              </optgroup>
+            </select>
+            <div id="customEmojiFields" class="custom-emoji-fields" aria-live="polite">
+              <label class="sr-only" for="customEmojiInput">Emoji personnalisé</label>
+              <input
+                type="text"
+                id="customEmojiInput"
+                maxlength="3"
+                placeholder="Emoji"
+                aria-label="Emoji personnalisé"
+              />
+            </div>
+            <label class="sr-only" for="taskTime">Heure</label>
+            <input id="taskTime" name="time" type="time" />
+            <label class="sr-only" for="taskEndTime">Fin</label>
+            <input id="taskEndTime" name="endTime" type="time" placeholder="Fin" />
+            <label class="sr-only" for="taskLabel">Description</label>
+            <input id="taskLabel" name="label" type="text" placeholder="Description" maxlength="60" required />
+          </div>
+          <button type="submit" class="btn btn-primary">Ajouter à cette journée</button>
+        </form>
+      </div>
+    </section>
+
+    <div id="dayFullscreen" class="day-fullscreen" hidden aria-hidden="true">
+      <div class="day-fullscreen-panel" role="dialog" aria-modal="true" aria-labelledby="fullscreenDayLabel">
+        <button type="button" class="day-fullscreen-close" aria-label="Fermer la vue journée" id="closeDayFullscreen">
+          ×
+        </button>
+        <p class="eyebrow">Journée complète</p>
+        <h3 id="fullscreenDayLabel">Aujourd’hui</h3>
+        <div class="day-fullscreen-toolbar">
+          <button type="button" class="btn ghost btn-small" id="printFullscreenDay">Imprimer cette vue</button>
+        </div>
+        <ul id="dayTaskFullscreenList" class="calendar-tasks calendar-tasks-stack"></ul>
+      </div>
+    </div>
+
+    <div id="copyDayModal" class="day-copy-modal" hidden aria-hidden="true">
+      <div class="day-copy-panel" role="dialog" aria-modal="true" aria-labelledby="copyDayTitle">
+        <button type="button" class="day-fullscreen-close" aria-label="Fermer la copie" id="closeCopyDay">
+          ×
+        </button>
+        <p class="eyebrow">Copier cette journée</p>
+        <h3 id="copyDayTitle">Choisis les jours à remplir</h3>
+        <form id="copyDayForm">
+          <section class="copy-section">
+            <p class="micro-copy">Cette semaine</p>
+            <div id="copyWeekTargets" class="copy-day-targets"></div>
+          </section>
+          <section class="copy-section">
+            <div class="copy-month-header">
+              <div>
+                <label for="copyMonthInput" class="small">Ajouter un mois</label>
+                <input type="month" id="copyMonthInput" />
+              </div>
+              <button type="button" class="btn ghost btn-small" id="addCopyMonth">Ajouter ce mois</button>
+            </div>
+            <div id="copyMonthList" class="copy-month-list"></div>
+          </section>
+          <p class="micro-copy">
+            Les routines sélectionnées remplaceront les étapes déjà présentes sur ces journées (tu pourras ensuite
+            ajuster).
+          </p>
+          <div class="copy-day-actions">
+            <button type="button" class="btn ghost" id="applyYearButton">Enregistrer à l’année</button>
+            <button type="button" class="btn ghost" id="cancelCopyDay">Annuler</button>
+            <button type="submit" class="btn btn-primary">Appliquer</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div id="printOptionsModal" class="day-copy-modal" hidden aria-hidden="true">
+      <div class="day-copy-panel">
+        <button type="button" class="day-fullscreen-close" aria-label="Fermer l’impression" id="closePrintModal">
+          ×
+        </button>
+        <p class="eyebrow">Choisir ce que tu imprimes</p>
+        <h3>Calendrier apaisé</h3>
+        <label for="printDaySelect" class="small">Jour à imprimer</label>
+        <select id="printDaySelect"></select>
+        <div class="copy-day-actions">
+          <button type="button" class="btn ghost" id="cancelPrintModal">Annuler</button>
+          <button type="button" class="btn ghost" id="printDaySubmit">Imprimer cette journée</button>
+          <button type="button" class="btn btn-primary" id="printWeekSubmit">Imprimer la semaine</button>
+        </div>
+      </div>
+    </div>
+
+    <footer class="micro-copy landing-footer">
+      Astuce : ajoute cette page à l’écran d’accueil pour maintenir la routine visible en un geste.
+    </footer>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="app.js" defer></script>
+</body>
+</html>

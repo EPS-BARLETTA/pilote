@@ -184,6 +184,16 @@ const HELP_CONTENT = {
       <p>Smartphone / tablette / ordinateur, hors ligne, ajoutable à l’écran d’accueil. Pas de diagnostic, pas de jugement : relation & régulation avant la performance.</p>
     </section>
   `,
+  calendar: `
+    <h2>🗓️ Calendrier apaisé</h2>
+    <p>Remplis la semaine avec ton enfant, duplique les journées qui fonctionnent et imprime-les si besoin.</p>
+    <ul>
+      <li>Ajoute des étapes avec emoji, heure de début/fin et un texte libre.</li>
+      <li>Copie une journée sur d’autres dates, un mois complet ou toute l’année.</li>
+      <li>Export/Import JSON pour sauvegarder localement et partager.</li>
+      <li>Bouton Impression : journée seule ou la semaine entière.</li>
+    </ul>
+  `,
 };
 
 const WEEKDAY_SHORT_FORMAT = new Intl.DateTimeFormat('fr-FR', { weekday: 'short' });
@@ -224,6 +234,8 @@ document.addEventListener('DOMContentLoaded', () => {
       ? 'parent'
       : path.includes('bilan')
       ? 'bilan'
+      : path.includes('calendrier') || path.includes('calendar')
+      ? 'calendar'
       : 'landing');
 
   ensureObjectiveStatus();
@@ -240,16 +252,16 @@ document.addEventListener('DOMContentLoaded', () => {
   if (page === 'child') initChild();
   if (page === 'parent') initParent();
   if (page === 'bilan') initBilan();
-  if (page === 'landing') initLanding();
+  if (page === 'landing' || page === 'calendar') initLanding(page);
 });
 
 /* =========================================================
    Landing
    ========================================================= */
 
-function initLanding() {
+function initLanding(pageKey = 'landing') {
   ensureLandingDefaults();
-  setupHelpButton('landing');
+  setupHelpButton(pageKey);
 
   const refs = {
     childEmojiSelect: document.getElementById('childEmojiSelect'),
@@ -291,6 +303,7 @@ function initLanding() {
     exportCalendar: document.getElementById('exportCalendar'),
     importCalendar: document.getElementById('importCalendar'),
     importCalendarInput: document.getElementById('importCalendarInput'),
+    printFullscreen: document.getElementById('printFullscreenDay'),
   };
 
   const handleTaskDelete = e => {
@@ -325,15 +338,7 @@ function initLanding() {
   if (!state.landing.selectedDate) state.landing.selectedDate = landingSelectedDate;
   saveState();
 
-  if (refs.childEmojiDisplay) refs.childEmojiDisplay.textContent = state.landing.childEmoji || '🚀';
-  if (refs.childEmojiSelect) {
-    refs.childEmojiSelect.value = state.landing.childEmoji || '🚀';
-    refs.childEmojiSelect.addEventListener('change', e => {
-      state.landing.childEmoji = e.target.value;
-      if (refs.childEmojiDisplay) refs.childEmojiDisplay.textContent = state.landing.childEmoji;
-      saveState();
-    });
-  }
+  syncChildEmojiPicker(refs);
 
   renderLandingWeek(refs);
   renderLandingDay(refs);
@@ -455,6 +460,41 @@ function initLanding() {
   });
 
   document.addEventListener('keydown', handleLandingEsc);
+
+  refs.childEmojiSelect?.addEventListener('change', e => {
+    state.landing.childEmoji = e.target.value;
+    syncChildEmojiPicker(refs);
+    saveState();
+  });
+
+  refs.printFullscreen?.addEventListener('click', () => handlePrintDay(refs, landingSelectedDate));
+}
+
+function syncChildEmojiPicker(refs) {
+  const value = getChildEmojiValue();
+  if (refs.childEmojiSelect) refs.childEmojiSelect.value = value;
+  applyChildEmojiToTarget(refs.childEmojiDisplay, value);
+  applyChildEmojiToTarget(refs.childEmojiBadge, value);
+}
+
+function applyChildEmojiToTarget(target, value) {
+  if (!target) return;
+  const output = value || '🚀';
+  if (output.startsWith('img:')) {
+    const img = document.createElement('img');
+    img.src = output.replace(/^img:/, '');
+    img.alt = 'Emoji personnalisé';
+    img.width = 60;
+    img.height = 60;
+    target.innerHTML = '';
+    target.appendChild(img);
+    return;
+  }
+  target.textContent = output;
+}
+
+function getChildEmojiValue() {
+  return state.landing?.childEmoji || DEFAULT_STATE.landing.childEmoji || '🚀';
 }
 
 function shiftLandingWeek(delta, refs) {
@@ -517,61 +557,163 @@ function renderLandingTasks(container, tasks) {
     return;
   }
 
+  const buckets = splitTasksByPeriod(tasks);
+  container.appendChild(buildTaskColumn('Matin (6h-12h)', buckets.morning, 'morning'));
+  container.appendChild(buildMiddayBlock(buckets.midday));
+  container.appendChild(buildTaskColumn('Après-midi (14h-18h)', buckets.afternoon, 'afternoon'));
+  container.appendChild(buildTaskColumn('Soir (18h-minuit)', buckets.evening, 'evening'));
+}
+
+function buildTaskColumn(title, items, modifier) {
+  const li = document.createElement('li');
+  li.className = `calendar-column calendar-column-${modifier}`;
+
+  const head = document.createElement('div');
+  head.className = 'calendar-column-head';
+  const label = document.createElement('p');
+  label.className = 'eyebrow';
+  label.textContent = title;
+  head.appendChild(label);
+  li.appendChild(head);
+
+  const list = document.createElement('ul');
+  list.className = 'calendar-task-list';
+  if (!items.length) {
+    const empty = document.createElement('li');
+    empty.className = 'calendar-task empty';
+    empty.textContent = 'À définir.';
+    list.appendChild(empty);
+  } else {
+    items.forEach(task => list.appendChild(buildTaskElement(task)));
+  }
+  li.appendChild(list);
+  return li;
+}
+
+function buildMiddayBlock(items) {
+  const li = document.createElement('li');
+  li.className = 'calendar-midday-block';
+  const label = document.createElement('p');
+  label.className = 'eyebrow';
+  label.textContent = 'Midi (12h-14h)';
+  li.appendChild(label);
+
+  const list = document.createElement('ul');
+  list.className = 'calendar-task-list';
+  if (!items.length) {
+    const empty = document.createElement('li');
+    empty.className = 'calendar-task empty';
+    empty.textContent = 'Pause ou repas prévu.';
+    list.appendChild(empty);
+  } else {
+    items.forEach(task => list.appendChild(buildTaskElement(task)));
+  }
+  li.appendChild(list);
+  return li;
+}
+
+function buildTaskElement(task) {
+  const li = document.createElement('li');
+  li.className = 'calendar-task';
+  if (task.completed) li.classList.add('is-completed');
+  li.dataset.taskId = task.id;
+  const color = getTaskColor(task);
+  li.style.setProperty('--task-bg', color.bg);
+  li.style.setProperty('--task-border', color.border);
+
+  const checkLabel = document.createElement('label');
+  checkLabel.className = 'calendar-task-checkbox';
+  const checkbox = document.createElement('input');
+  checkbox.type = 'checkbox';
+  checkbox.checked = Boolean(task.completed);
+  checkbox.dataset.taskToggle = task.id;
+  checkbox.setAttribute(
+    'aria-label',
+    `${checkbox.checked ? 'Décocher' : 'Valider'} ${task.label || 'cette étape'}`
+  );
+
+  const checkMark = document.createElement('span');
+  checkMark.textContent = checkbox.checked ? '✅' : '◻️';
+
+  checkLabel.append(checkbox, checkMark);
+
+  const info = document.createElement('div');
+  info.className = 'calendar-task-info';
+
+  const emoji = document.createElement('span');
+  emoji.className = 'calendar-task-emoji';
+  emoji.textContent = task.emoji || '⭐️';
+
+  const textWrap = document.createElement('div');
+  textWrap.className = 'calendar-task-text';
+
+  const timeEl = document.createElement('span');
+  timeEl.className = 'calendar-task-time';
+  timeEl.textContent = formatTaskTime(task);
+
+  const labelEl = document.createElement('span');
+  labelEl.className = 'calendar-task-label';
+  labelEl.textContent = task.label;
+
+  textWrap.append(timeEl, labelEl);
+  info.append(emoji, textWrap);
+
+  const removeBtn = document.createElement('button');
+  removeBtn.type = 'button';
+  removeBtn.dataset.deleteTask = task.id;
+  removeBtn.setAttribute('aria-label', `Supprimer ${task.label || 'cette étape'}`);
+  removeBtn.textContent = '×';
+
+  li.append(checkLabel, info, removeBtn);
+  return li;
+}
+
+function splitTasksByPeriod(tasks) {
+  const buckets = { morning: [], midday: [], afternoon: [], evening: [] };
   tasks.forEach(task => {
-    const li = document.createElement('li');
-    li.className = 'calendar-task';
-    if (task.completed) li.classList.add('is-completed');
-    li.dataset.taskId = task.id;
-    const color = getTaskColor(task);
-    li.style.setProperty('--task-bg', color.bg);
-    li.style.setProperty('--task-border', color.border);
-
-    const checkLabel = document.createElement('label');
-    checkLabel.className = 'calendar-task-checkbox';
-    const checkbox = document.createElement('input');
-    checkbox.type = 'checkbox';
-    checkbox.checked = Boolean(task.completed);
-    checkbox.dataset.taskToggle = task.id;
-    checkbox.setAttribute(
-      'aria-label',
-      `${checkbox.checked ? 'Décocher' : 'Valider'} ${task.label || 'cette étape'}`
-    );
-
-    const checkMark = document.createElement('span');
-    checkMark.textContent = checkbox.checked ? '✅' : '◻️';
-
-    checkLabel.append(checkbox, checkMark);
-
-    const info = document.createElement('div');
-    info.className = 'calendar-task-info';
-
-    const emoji = document.createElement('span');
-    emoji.className = 'calendar-task-emoji';
-    emoji.textContent = task.emoji || '⭐️';
-
-    const textWrap = document.createElement('div');
-    textWrap.className = 'calendar-task-text';
-
-    const timeEl = document.createElement('span');
-    timeEl.className = 'calendar-task-time';
-    timeEl.textContent = formatTaskTime(task);
-
-    const labelEl = document.createElement('span');
-    labelEl.className = 'calendar-task-label';
-    labelEl.textContent = task.label;
-
-    textWrap.append(timeEl, labelEl);
-    info.append(emoji, textWrap);
-
-    const removeBtn = document.createElement('button');
-    removeBtn.type = 'button';
-    removeBtn.dataset.deleteTask = task.id;
-    removeBtn.setAttribute('aria-label', `Supprimer ${task.label || 'cette étape'}`);
-    removeBtn.textContent = '×';
-
-    li.append(checkLabel, info, removeBtn);
-    container.appendChild(li);
+    const slot = categorizeTaskSlot(task, buckets);
+    buckets[slot].push(task);
   });
+  return buckets;
+}
+
+function categorizeTaskSlot(task, buckets) {
+  const label = (task.label || '').toLowerCase();
+  const time = task.time || '';
+  if (isMiddayTask(time, label)) return 'midday';
+  const minutes = getTimeMinutes(time);
+  if (minutes !== null) {
+    if (minutes < 360) return 'evening';
+    if (minutes < 720) return 'morning';
+    if (minutes < 840) return 'midday';
+    if (minutes < 1080) return 'afternoon';
+    return 'evening';
+  }
+  const order = ['morning', 'midday', 'afternoon', 'evening'];
+  return order.reduce((best, key) => {
+    if (!best) return key;
+    return buckets[key].length < buckets[best].length ? key : best;
+  }, 'morning');
+}
+
+function isMiddayTask(time, label) {
+  const breakfastWords = ['petit déjeuner', 'petit-dejeuner', 'petitdej', 'petit dej'];
+  if (breakfastWords.some(word => label.includes(word))) return false;
+  const middayWords = ['déjeuner', 'dejeuner', 'repas', 'midi'];
+  if (middayWords.some(word => label.includes(word))) return true;
+  if (!time) return false;
+  const minutes = getTimeMinutes(time);
+  if (minutes === null) return false;
+  return minutes >= 720 && minutes < 840;
+}
+
+function getTimeMinutes(time) {
+  if (!time) return null;
+  const [hourStr, minuteStr] = time.split(':');
+  const hours = Number(hourStr);
+  const minutes = Number(minuteStr);
+  if (Number.isNaN(hours) || Number.isNaN(minutes)) return null;
+  return hours * 60 + minutes;
 }
 
 function openLandingDayFullscreen(refs) {
@@ -579,6 +721,7 @@ function openLandingDayFullscreen(refs) {
   refs.dayFullscreen.hidden = false;
   refs.dayFullscreen.setAttribute('aria-hidden', 'false');
   document.body.classList.add('no-scroll');
+  document.body.classList.add('calendar-focus');
   renderLandingDay(refs);
   const focusTarget = refs.dayFullscreen.querySelector('button, [href], input, select, textarea');
   focusTarget?.focus?.();
@@ -690,6 +833,7 @@ function closeLandingDayFullscreen(refs) {
   refs.dayFullscreen.hidden = true;
   refs.dayFullscreen.setAttribute('aria-hidden', 'true');
   document.body.classList.remove('no-scroll');
+  document.body.classList.remove('calendar-focus');
 }
 
 function updateCustomEmojiFields(refs) {
@@ -943,80 +1087,132 @@ function handlePrintDay(refs, dateKey) {
 }
 
 function handlePrintWeek(refs) {
-  const nodes = getWeekDates(landingWeekAnchor || new Date()).map(date => buildPrintDay(toDateKey(date)));
-  openPrintWindow('Semaine apaisée', nodes);
+  const node = buildPrintWeek();
+  openPrintWindow('Semaine apaisée', [node]);
 }
 
 function buildPrintDay(dateKey) {
   const date = parseDateKey(dateKey) || new Date();
   const section = document.createElement('section');
-  section.className = 'card day-column print-day';
+  section.className = 'print-day';
+
+  const panel = document.createElement('div');
+  panel.className = 'day-fullscreen-panel day-fullscreen-panel-print';
+
+  const eyebrow = document.createElement('p');
+  eyebrow.className = 'eyebrow';
+  eyebrow.textContent = 'Journée complète';
+  const title = document.createElement('h3');
+  title.textContent = capitalizeLabel(DAY_FULL_FORMAT.format(date));
+  panel.append(eyebrow, title);
+
+  const list = document.createElement('ul');
+  list.className = 'calendar-tasks calendar-tasks-stack';
+  const tasks = [...(state.landing.calendar[dateKey] || [])].sort((a, b) =>
+    (a.time || '').localeCompare(b.time || '')
+  );
+  renderLandingTasks(list, tasks);
+  list.querySelectorAll('button[data-delete-task]').forEach(btn => btn.remove());
+  panel.appendChild(list);
+  section.appendChild(panel);
+  return section;
+}
+
+function buildPrintWeek() {
+  const section = document.createElement('section');
+  section.className = 'print-week card';
 
   const header = document.createElement('div');
   header.className = 'day-header';
   const info = document.createElement('div');
   const eyebrow = document.createElement('p');
   eyebrow.className = 'eyebrow';
-  eyebrow.textContent = 'Journée';
+  eyebrow.textContent = 'Semaine';
   const title = document.createElement('h3');
-  title.textContent = capitalizeLabel(DAY_FULL_FORMAT.format(date));
+  const dates = getWeekDates(landingWeekAnchor || new Date());
+  const first = DAY_MONTH_FORMAT.format(dates[0]);
+  const last = DAY_MONTH_FORMAT.format(dates[dates.length - 1]);
+  title.textContent = `${first} – ${last}`;
   info.append(eyebrow, title);
-  header.append(info);
+  header.appendChild(info);
   section.appendChild(header);
 
-  const list = document.createElement('ul');
-  list.className = 'calendar-tasks';
-  const tasks = [...(state.landing.calendar[dateKey] || [])].sort((a, b) =>
-    (a.time || '').localeCompare(b.time || '')
-  );
-  if (!tasks.length) {
-    const empty = document.createElement('li');
-    empty.className = 'calendar-task empty';
-    empty.textContent = 'Aucune étape prévue.';
-    list.appendChild(empty);
+  const table = document.createElement('table');
+  table.className = 'print-week-table';
+  const thead = document.createElement('thead');
+  const headRow = document.createElement('tr');
+
+  const emptyTh = document.createElement('th');
+  emptyTh.textContent = 'Étapes';
+  headRow.appendChild(emptyTh);
+
+  const weekTasks = dates.map(date => {
+    const dateKey = toDateKey(date);
+    const list = [...(state.landing.calendar[dateKey] || [])].sort((a, b) =>
+      (a.time || '').localeCompare(b.time || '')
+    );
+    return { date, tasks: list };
+  });
+
+  weekTasks.forEach(({ date }) => {
+    const th = document.createElement('th');
+    const dayName = capitalizeLabel(WEEKDAY_SHORT_FORMAT.format(date));
+    th.textContent = `${dayName} ${DAY_MONTH_FORMAT.format(date)}`;
+    headRow.appendChild(th);
+  });
+
+  thead.appendChild(headRow);
+  table.appendChild(thead);
+
+  const tbody = document.createElement('tbody');
+  const maxRows = Math.max(0, ...weekTasks.map(item => item.tasks.length));
+
+  if (maxRows === 0) {
+    const row = document.createElement('tr');
+    const cell = document.createElement('td');
+    cell.colSpan = weekTasks.length + 1;
+    cell.textContent = 'Aucune étape planifiée cette semaine.';
+    row.appendChild(cell);
+    tbody.appendChild(row);
   } else {
-    tasks.forEach(task => list.appendChild(buildPrintTask(task)));
+    for (let i = 0; i < maxRows; i += 1) {
+      const row = document.createElement('tr');
+      const labelCell = document.createElement('th');
+      labelCell.scope = 'row';
+      labelCell.textContent = `Étape ${i + 1}`;
+      row.appendChild(labelCell);
+
+      weekTasks.forEach(({ tasks }) => {
+        const cell = document.createElement('td');
+        const task = tasks[i];
+        if (task) {
+          const wrap = document.createElement('div');
+          wrap.className = 'print-week-cell';
+
+          const time = document.createElement('strong');
+          time.textContent = formatTaskTime(task);
+
+          const label = document.createElement('span');
+          label.textContent = `${task.emoji || '⭐️'} ${task.label || ''}`;
+
+          const checkbox = document.createElement('span');
+          checkbox.className = 'print-checkbox';
+          checkbox.textContent = '☐';
+
+          wrap.append(time, label, checkbox);
+          cell.appendChild(wrap);
+        } else {
+          cell.innerHTML = '&nbsp;';
+        }
+        row.appendChild(cell);
+      });
+      tbody.appendChild(row);
+    }
   }
 
-  section.appendChild(list);
+  table.appendChild(tbody);
+  section.appendChild(table);
   return section;
-}
-
-function buildPrintTask(task) {
-  const li = document.createElement('li');
-  li.className = 'print-task-block';
-  const color = getTaskColor(task);
-  li.style.borderColor = color.border;
-
-  const header = document.createElement('div');
-  header.className = 'print-task-header';
-
-  const emoji = document.createElement('span');
-  emoji.textContent = task.emoji || '⭐️';
-
-  const label = document.createElement('span');
-  label.textContent = task.label || '';
-
-  header.append(emoji, label);
-
-  const meta = document.createElement('div');
-  meta.className = 'print-task-meta';
-
-  const timeEl = document.createElement('strong');
-  timeEl.textContent = formatTaskTime(task);
-
-  const status = document.createElement('span');
-  status.textContent = task.completed ? '✅ Étape réalisée' : '◻️ À faire';
-  status.style.color = task.completed ? '#1f7a5c' : '#5b677a';
-
-  meta.append(timeEl, status);
-
-  const note = document.createElement('div');
-  note.className = 'print-task-note';
-  note.textContent = 'Notes :';
-
-  li.append(header, meta, note);
-  return li;
 }
 
 function openPrintWindow(title, nodes) {
@@ -1025,7 +1221,8 @@ function openPrintWindow(title, nodes) {
     alert('Impossible d’ouvrir la fenêtre d’impression (bloqueur de pop-up ?).');
     return;
   }
-  const stylesheet = document.querySelector('link[rel="stylesheet"]')?.getAttribute('href') || 'styles.css';
+  const stylesheetHref = document.querySelector('link[rel="stylesheet"]')?.getAttribute('href') || 'styles.css';
+  const stylesheet = new URL(stylesheetHref, window.location.href).href;
   const content = nodes.map(node => node.outerHTML).join('');
   win.document.write(`<!DOCTYPE html>
   <html lang="fr">
@@ -1035,8 +1232,8 @@ function openPrintWindow(title, nodes) {
     <link rel="stylesheet" href="${stylesheet}" />
     <style>
       body { background: #fff; padding: 20px; }
-      main { max-width: 760px; margin: 0 auto; }
-      .day-column { break-after: page; }
+      main { max-width: 1100px; margin: 0 auto; }
+      .print-day { break-after: page; }
       .calendar-task button,
       .calendar-task .calendar-task-checkbox input { display: none !important; }
     </style>
@@ -1092,6 +1289,7 @@ function importLandingCalendar(file, refs) {
 function initChild() {
   setupHelpButton('child');
   const refs = {
+    childEmojiBadge: document.getElementById('childEmojiBadge'),
     meterButtons: document.querySelectorAll('.meter button[data-level]'),
     levelStatus: document.getElementById('levelStatus'),
     pauseCard: document.getElementById('pauseCard'),
@@ -1196,6 +1394,7 @@ function renderChild(refs) {
   }
 
   renderFocusSummary(refs.focusSummary);
+  applyChildEmojiToTarget(refs.childEmojiBadge, getChildEmojiValue());
 }
 
 function handleLevelSelect(level, refs) {
@@ -1358,13 +1557,25 @@ function ensureBreathModal(existing) {
 /* ===== Freins : mini-modale actionnable ===== */
 
 function openStrategyModal(strategyText) {
-  const { title, instruction, finishText, rewardOnFinish } = getStrategyInstruction(strategyText);
+  const cleanLabel = String(strategyText || '').trim();
+  const { title, instruction, finishText, rewardOnFinish } = getStrategyInstruction(cleanLabel);
+  const visibleTitle = cleanLabel || title;
 
   const modal = ensureMiniModal('strategy-modal', title);
   const content = modal.querySelector('[data-modal-content]');
   const finishBtn = modal.querySelector('[data-modal-finish]');
+  const titleEl = modal.querySelector('.modal-title');
 
-  if (content) content.textContent = instruction;
+  if (titleEl) titleEl.textContent = visibleTitle || 'Un petit outil';
+  modal.setAttribute('aria-label', visibleTitle || 'Un petit outil');
+
+  if (content) {
+    if (cleanLabel && instruction && !instruction.toLowerCase().includes(cleanLabel.toLowerCase())) {
+      content.textContent = `${cleanLabel} · ${instruction}`;
+    } else {
+      content.textContent = instruction || cleanLabel || 'Fais-le doucement, à ton rythme.';
+    }
+  }
 
   finishBtn.onclick = () => {
     closeModal(modal);
