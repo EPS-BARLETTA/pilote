@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PILOTE – Compteur</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600&display=swap"
+    rel="stylesheet"
+  />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body data-page="counter">
+  <main class="container counter-page">
+    <header class="card counter-hero">
+      <div>
+        <p class="eyebrow">Compter ce qui compte</p>
+        <h1>Mon compteur</h1>
+        <p>On suit ensemble un mot doux, un geste courageux ou ce qu’on veut corriger.</p>
+        <p class="small">Tout reste enregistré sur cet appareil.</p>
+      </div>
+    </header>
+
+    <nav class="child-nav" aria-label="Navigation">
+      <a href="index.html" class="nav-pill">← Accueil</a>
+    </nav>
+
+    <section class="card counter-config" aria-labelledby="counterConfigTitle" id="counterConfigCard">
+      <div class="card-head">
+        <div>
+          <p class="eyebrow">Paramétrage</p>
+          <h2 id="counterConfigTitle">Définis ce que tu observes</h2>
+          <p class="small">Exemples : « Nombre de fois où je dis merci », « Bonnes actions du jour ».</p>
+        </div>
+      </div>
+      <form id="counterLabelForm" class="counter-form">
+        <label class="sr-only" for="counterLabelInput">Observable à suivre</label>
+        <input
+          type="text"
+          id="counterLabelInput"
+          maxlength="80"
+          placeholder="Exemple : Je dis un mot gentil"
+          autocomplete="off"
+        />
+        <label class="sr-only" for="counterParticipantsInput">Prénoms observés</label>
+        <textarea
+          id="counterParticipantsInput"
+          rows="2"
+          placeholder="Ajoute les prénoms (ex. : Léa : 🦋)"
+        ></textarea>
+        <p class="micro-copy counter-tip">
+          Sépare les prénoms par des virgules ou retours à la ligne. Ajoute un emoji avec « Prénom : emoji » ou « Prénom emoji ».
+        </p>
+        <button class="btn btn-primary" type="submit">Enregistrer</button>
+      </form>
+    </section>
+
+    <section class="card counter-display" aria-live="polite">
+      <p class="eyebrow">Suivi</p>
+      <h2 id="counterDisplayLabel">Définis ton observable ci-dessus</h2>
+      <p class="micro-copy">Chaque personne a son compteur. « − » et « Remettre à zéro » demandent un code parent.</p>
+      <div class="counter-week-nav">
+        <button class="btn ghost counter-week-btn" type="button" id="counterWeekPrev" aria-label="Semaine précédente">‹</button>
+        <div>
+          <p class="micro-copy">Semaine suivie</p>
+          <strong id="counterWeekLabel">Aujourdhui</strong>
+          <p class="micro-copy">Jour sélectionné : <span id="counterSelectedDayLabel">—</span></p>
+        </div>
+        <button class="btn ghost counter-week-btn" type="button" id="counterWeekNext" aria-label="Semaine suivante">›</button>
+      </div>
+      <ul class="counter-week-days" id="counterWeekDays" aria-label="Sélection du jour de suivi"></ul>
+      <button class="btn ghost counter-edit-btn" type="button" id="counterEditButton">Modifier les paramètres</button>
+      <div class="counter-list" id="counterList" aria-live="polite"></div>
+    </section>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="app.js" defer></script>
+</body>
+</html>

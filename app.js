@@ -141,6 +141,13 @@ const DEFAULT_STATE = {
     weekAnchor: null,
     calendar: {},
   },
+
+  counter: {
+    label: '',
+    participants: [],
+    weekAnchor: null,
+    selectedDate: null,
+  },
 };
 
 const HELP_CONTENT = {
@@ -194,6 +201,17 @@ const HELP_CONTENT = {
       <li>Bouton Impression : journée seule ou la semaine entière.</li>
     </ul>
   `,
+
+  counter: `
+    <h2>🧮 Compteur</h2>
+    <p>Choisis un comportement, une action positive ou un mot à suivre, puis assigne-le à plusieurs enfants.</p>
+    <ul>
+      <li>Écris l’observable (“Je dis merci”, “Bonnes actions”) et ajoute les prénoms (séparés par des virgules ou retours à la ligne).</li>
+      <li>Chaque carte affiche un bouton “+1” libre d’accès.</li>
+      <li>Les boutons “−” et “Remettre à zéro” sont protégés par un code parent.</li>
+      <li>Tout reste stocké localement : parfait pour un suivi quotidien partagé.</li>
+    </ul>
+  `,
 };
 
 const WEEKDAY_SHORT_FORMAT = new Intl.DateTimeFormat('fr-FR', { weekday: 'short' });
@@ -208,6 +226,17 @@ const TASK_COLOR_PALETTE = [
   { bg: '#fdf1ec', border: '#f2dcd1' },
 ];
 
+const COUNTER_COLOR_PALETTE = [
+  { bg: '#fff2e6', border: '#ffd2a8' },
+  { bg: '#f2f9ff', border: '#cfe7ff' },
+  { bg: '#fef2fb', border: '#f7cae6' },
+  { bg: '#f1fff7', border: '#c2f0d6' },
+  { bg: '#fef7e8', border: '#f4dfb5' },
+  { bg: '#f2f2ff', border: '#d4d4ff' },
+];
+
+const COUNTER_PROTECTION_CODE = '57';
+
 let state = loadState();
 let crisisIndex = 0;
 
@@ -217,6 +246,9 @@ let landingSelectedDate = null;
 let landingWeekAnchor = null;
 let landingAutoLabel = '';
 let helpModal = null;
+let counterWeekAnchor = null;
+let counterSelectedDateKey = null;
+let counterEditing = false;
 
 /* =========================================================
    Boot / router
@@ -234,12 +266,15 @@ document.addEventListener('DOMContentLoaded', () => {
       ? 'parent'
       : path.includes('bilan')
       ? 'bilan'
+      : path.includes('compteur') || path.includes('counter')
+      ? 'counter'
       : path.includes('calendrier') || path.includes('calendar')
       ? 'calendar'
       : 'landing');
 
   ensureObjectiveStatus();
   ensureLandingDefaults();
+  ensureCounterDefaults();
   saveState();
 
   // Global: Escape ferme la modale la plus récente
@@ -252,6 +287,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (page === 'child') initChild();
   if (page === 'parent') initParent();
   if (page === 'bilan') initBilan();
+  if (page === 'counter') initCounter();
   if (page === 'landing' || page === 'calendar') initLanding(page);
 });
 
@@ -484,8 +520,9 @@ function applyChildEmojiToTarget(target, value) {
     const img = document.createElement('img');
     img.src = output.replace(/^img:/, '');
     img.alt = 'Emoji personnalisé';
-    img.width = 60;
-    img.height = 60;
+    const size = Number(target.dataset?.emojiSize) || 48;
+    img.width = size;
+    img.height = size;
     target.innerHTML = '';
     target.appendChild(img);
     return;
@@ -1280,6 +1317,413 @@ function importLandingCalendar(file, refs) {
     }
   };
   reader.readAsText(file);
+}
+
+/* =========================================================
+   Counter
+   ========================================================= */
+
+function initCounter() {
+  ensureCounterDefaults();
+  counterSelectedDateKey = state.counter.selectedDate || toDateKey(new Date());
+  counterWeekAnchor = parseDateKey(state.counter.weekAnchor) || startOfWeek(new Date());
+  setupHelpButton('counter');
+
+  const refs = {
+    labelForm: document.getElementById('counterLabelForm'),
+    labelInput: document.getElementById('counterLabelInput'),
+    labelDisplay: document.getElementById('counterDisplayLabel'),
+    participantsInput: document.getElementById('counterParticipantsInput'),
+    list: document.getElementById('counterList'),
+    weekPrev: document.getElementById('counterWeekPrev'),
+    weekNext: document.getElementById('counterWeekNext'),
+    weekLabel: document.getElementById('counterWeekLabel'),
+    selectedDayLabel: document.getElementById('counterSelectedDayLabel'),
+    weekDays: document.getElementById('counterWeekDays'),
+    page: document.querySelector('.counter-page'),
+    editButton: document.getElementById('counterEditButton'),
+    configCard: document.getElementById('counterConfigCard'),
+  };
+
+  if (refs.labelInput) refs.labelInput.value = state.counter.label || '';
+  fillCounterParticipantsInput(refs);
+  updateCounterLayout(refs);
+  renderCounter(refs);
+
+  refs.labelForm?.addEventListener('submit', event => {
+    event.preventDefault();
+    applyCounterLabel(refs);
+  });
+
+  refs.list?.addEventListener('click', event => handleCounterListClick(event, refs));
+  refs.weekPrev?.addEventListener('click', () => shiftCounterWeek(-1, refs));
+  refs.weekNext?.addEventListener('click', () => shiftCounterWeek(1, refs));
+  refs.weekDays?.addEventListener('click', event => handleCounterDaySelect(event, refs));
+  refs.editButton?.addEventListener('click', () => toggleCounterEditing(refs));
+}
+
+function applyCounterLabel(refs) {
+  ensureCounterDefaults();
+  const label = refs.labelInput?.value?.trim() || '';
+  const names = parseCounterParticipantsInput(refs.participantsInput?.value);
+  const hadParticipants = (state.counter.participants || []).length > 0;
+  if (!names.length && !hadParticipants) {
+    alert('Ajoute au moins un prénom (séparés par virgules ou retours à la ligne).');
+    return;
+  }
+  state.counter.label = label;
+  if (names.length) setCounterParticipants(names);
+  ensureCounterDefaults();
+  if (!state.counter.participants.length) {
+    alert('Ajoute au moins un prénom.');
+    return;
+  }
+  saveState();
+  fillCounterParticipantsInput(refs);
+  renderCounter(refs);
+  counterEditing = false;
+  updateCounterLayout(refs);
+  updateCounterEditButton(refs);
+  showToast('Paramètres enregistrés.');
+}
+
+function handleCounterListClick(event, refs) {
+  const target = event.target;
+  if (!(target instanceof Element)) return;
+  const plusBtn = target.closest('button[data-counter-plus]');
+  if (plusBtn?.dataset?.counterPlus) {
+    changeCounterParticipantValue(plusBtn.dataset.counterPlus, 1, false, refs);
+    return;
+  }
+
+  const minusBtn = target.closest('button[data-counter-minus]');
+  if (minusBtn?.dataset?.counterMinus) {
+    changeCounterParticipantValue(minusBtn.dataset.counterMinus, -1, true, refs);
+    return;
+  }
+
+  const resetBtn = target.closest('button[data-counter-reset]');
+  if (resetBtn?.dataset?.counterReset) {
+    resetCounterParticipant(resetBtn.dataset.counterReset, refs);
+  }
+}
+
+function handleCounterDaySelect(event, refs) {
+  const target = event.target.closest('button[data-counter-date]');
+  if (!target) return;
+  setCounterSelectedDate(target.dataset.counterDate, refs);
+}
+
+function shiftCounterWeek(delta, refs) {
+  if (!counterWeekAnchor) counterWeekAnchor = startOfWeek(new Date());
+  counterWeekAnchor.setDate(counterWeekAnchor.getDate() + delta * 7);
+  counterWeekAnchor = startOfWeek(counterWeekAnchor);
+  state.counter.weekAnchor = toDateKey(counterWeekAnchor);
+  const weekDates = getCounterWeekDates();
+  if (!weekDates.includes(counterSelectedDateKey)) {
+    counterSelectedDateKey = weekDates[0];
+    state.counter.selectedDate = counterSelectedDateKey;
+  }
+  saveState();
+  renderCounterWeek(refs);
+  renderCounter(refs);
+}
+
+function setCounterSelectedDate(dateKey, refs) {
+  if (!dateKey) return;
+  counterSelectedDateKey = dateKey;
+  state.counter.selectedDate = counterSelectedDateKey;
+  saveState();
+  renderCounterWeek(refs);
+  renderCounter(refs);
+}
+
+function changeCounterParticipantValue(participantId, delta, requireCode, refs) {
+  if (!participantId) return;
+  if (requireCode && !verifyCounterCode()) return;
+  ensureCounterDefaults();
+  const participant = state.counter.participants.find(p => p.id === participantId);
+  if (!participant) return;
+  const dateKey = counterSelectedDateKey || state.counter.selectedDate || toDateKey(new Date());
+  counterSelectedDateKey = dateKey;
+  state.counter.selectedDate = dateKey;
+  participant.entries = participant.entries || {};
+  const current = getCounterParticipantValue(participant, dateKey);
+  const next = Math.max(0, current + delta);
+  participant.entries[dateKey] = next;
+  saveState();
+  renderCounter(refs);
+}
+
+function resetCounterParticipant(participantId, refs) {
+  if (!participantId || !verifyCounterCode()) return;
+  ensureCounterDefaults();
+  const participant = state.counter.participants.find(p => p.id === participantId);
+  if (!participant) return;
+  participant.entries = {};
+  saveState();
+  renderCounter(refs);
+  showToast(`Compteur remis à zéro pour ${participant.name || 'ce participant'}.`);
+}
+
+function verifyCounterCode() {
+  const input = window.prompt('Code parent requis pour cette action.');
+  if (input === null) return false;
+  if (input.trim() !== COUNTER_PROTECTION_CODE) {
+    alert('Code incorrect.');
+    return false;
+  }
+  return true;
+}
+
+function renderCounter(refs) {
+  ensureCounterDefaults();
+  const label = (state.counter?.label || '').trim();
+  if (refs.labelDisplay) refs.labelDisplay.textContent = label || 'Définis ton observable ci-dessus';
+  renderCounterWeek(refs);
+  updateCounterLayout(refs);
+  renderCounterList(refs);
+  updateCounterEditButton(refs);
+}
+
+function renderCounterList(refs) {
+  if (!refs?.list) return;
+  refs.list.innerHTML = '';
+  const participants = state.counter.participants || [];
+  if (!participants.length) {
+    const empty = document.createElement('p');
+    empty.className = 'micro-copy';
+    empty.textContent = 'Ajoute des prénoms ci-dessus pour commencer.';
+    refs.list.appendChild(empty);
+    return;
+  }
+  const weekDates = getCounterWeekDates();
+  participants.forEach((participant, index) => {
+    const card = document.createElement('article');
+    card.className = 'counter-person';
+    const color = participant.color || COUNTER_COLOR_PALETTE[index % COUNTER_COLOR_PALETTE.length];
+    if (color?.bg) card.style.setProperty('--counter-card-bg', color.bg);
+    if (color?.border) card.style.setProperty('--counter-card-border', color.border);
+
+    const head = document.createElement('div');
+    head.className = 'counter-person-head';
+    const nameEl = document.createElement('h3');
+    nameEl.textContent = participant.name || 'Participant';
+    if (participant.emoji) {
+      const emojiSpan = document.createElement('span');
+      emojiSpan.className = 'counter-person-emoji';
+      emojiSpan.textContent = participant.emoji;
+      nameEl.prepend(emojiSpan);
+    }
+    head.appendChild(nameEl);
+    const resetBtn = document.createElement('button');
+    resetBtn.type = 'button';
+    resetBtn.className = 'btn ghost counter-reset-btn';
+    resetBtn.dataset.counterReset = participant.id;
+    resetBtn.textContent = 'Remettre à zéro';
+    head.appendChild(resetBtn);
+    card.appendChild(head);
+
+    const note = document.createElement('p');
+    note.className = 'micro-copy';
+    note.textContent = state.counter.label
+      ? `${capitalizeLabel(state.counter.label)} de ${participant.name}`
+      : 'Observable en attente';
+    card.appendChild(note);
+
+    const valueWrap = document.createElement('div');
+    valueWrap.className = 'counter-value';
+    const minusBtn = document.createElement('button');
+    minusBtn.type = 'button';
+    minusBtn.className = 'counter-btn';
+    minusBtn.dataset.counterMinus = participant.id;
+    minusBtn.setAttribute('aria-label', `Retirer un point pour ${participant.name || 'ce participant'}`);
+    minusBtn.textContent = '−';
+    const value = document.createElement('span');
+    value.textContent = String(getCounterParticipantValue(participant, counterSelectedDateKey));
+    value.setAttribute('aria-live', 'polite');
+    value.setAttribute('aria-atomic', 'true');
+    valueWrap.append(minusBtn, value);
+    const plusBtn = document.createElement('button');
+    plusBtn.type = 'button';
+    plusBtn.className = 'counter-btn counter-btn-plus';
+    plusBtn.dataset.counterPlus = participant.id;
+    plusBtn.setAttribute('aria-label', `Ajouter un point pour ${participant.name || 'ce participant'}`);
+    plusBtn.textContent = '+1';
+    valueWrap.appendChild(plusBtn);
+    card.appendChild(valueWrap);
+
+    const weekRow = document.createElement('div');
+    weekRow.className = 'counter-person-week';
+    weekDates.forEach(dateKey => {
+      const cell = document.createElement('div');
+      cell.className = 'counter-person-day';
+      if (dateKey === counterSelectedDateKey) cell.classList.add('is-selected');
+      const dayLabel = document.createElement('strong');
+      const date = parseDateKey(dateKey);
+      const weekday = capitalizeLabel(WEEKDAY_SHORT_FORMAT.format(date));
+      dayLabel.textContent = `${weekday} ${String(date.getDate()).padStart(2, '0')}`;
+      const dayValue = document.createElement('span');
+      dayValue.textContent = String(getCounterParticipantValue(participant, dateKey));
+      cell.title = `${capitalizeLabel(DAY_FULL_FORMAT.format(date))}`;
+      cell.append(dayLabel, dayValue);
+      weekRow.appendChild(cell);
+    });
+    card.appendChild(weekRow);
+
+    refs.list.appendChild(card);
+  });
+}
+
+function getCounterParticipantValue(participant, dateKey) {
+  if (!participant?.entries) return 0;
+  const value = participant.entries[dateKey];
+  return Math.max(0, Number(value) || 0);
+}
+
+function renderCounterWeek(refs) {
+  if (!refs) return;
+  const weekDates = getCounterWeekDates();
+  if (!weekDates.length) return;
+  if (!counterSelectedDateKey) {
+    counterSelectedDateKey = weekDates[0];
+    state.counter.selectedDate = counterSelectedDateKey;
+    saveState();
+  }
+  const first = parseDateKey(weekDates[0]);
+  const last = parseDateKey(weekDates[weekDates.length - 1]);
+  if (refs.weekLabel) {
+    refs.weekLabel.textContent = `${DAY_MONTH_FORMAT.format(first)} – ${DAY_MONTH_FORMAT.format(last)}`;
+  }
+  const current = parseDateKey(counterSelectedDateKey) || new Date();
+  if (refs.selectedDayLabel) refs.selectedDayLabel.textContent = capitalizeLabel(DAY_FULL_FORMAT.format(current));
+  if (refs.weekDays) {
+    refs.weekDays.innerHTML = '';
+    weekDates.forEach(dateKey => {
+      const item = document.createElement('li');
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.dataset.counterDate = dateKey;
+      const date = parseDateKey(dateKey);
+      const weekday = capitalizeLabel(WEEKDAY_SHORT_FORMAT.format(date));
+      const dayNumber = String(date.getDate()).padStart(2, '0');
+      btn.textContent = `${weekday} ${dayNumber}`;
+      btn.setAttribute('aria-label', capitalizeLabel(DAY_FULL_FORMAT.format(date)));
+      const isSelected = dateKey === counterSelectedDateKey;
+      if (isSelected) btn.classList.add('is-selected');
+      btn.setAttribute('aria-pressed', String(isSelected));
+      item.appendChild(btn);
+      refs.weekDays.appendChild(item);
+    });
+  }
+}
+
+function getCounterWeekDates() {
+  if (!counterWeekAnchor) {
+    counterWeekAnchor = startOfWeek(new Date());
+    state.counter.weekAnchor = toDateKey(counterWeekAnchor);
+    saveState();
+  }
+  const anchor = new Date(counterWeekAnchor);
+  const dates = [];
+  for (let i = 0; i < 7; i += 1) {
+    const day = new Date(anchor);
+    day.setDate(anchor.getDate() + i);
+    dates.push(toDateKey(day));
+  }
+  return dates;
+}
+
+function toggleCounterEditing(refs) {
+  counterEditing = !counterEditing;
+  fillCounterParticipantsInput(refs);
+  updateCounterLayout(refs);
+  updateCounterEditButton(refs);
+}
+
+function updateCounterLayout(refs) {
+  const page = refs?.page || document.querySelector('.counter-page');
+  if (!page) return;
+  const hasParticipants = (state.counter.participants || []).length > 0;
+  page.classList.toggle('counter-ready', hasParticipants && !counterEditing);
+  page.classList.toggle('counter-editing', counterEditing);
+}
+
+function updateCounterEditButton(refs) {
+  if (!refs?.editButton) return;
+  const hasParticipants = (state.counter.participants || []).length > 0;
+  refs.editButton.hidden = !hasParticipants;
+  refs.editButton.textContent = counterEditing ? 'Masquer les paramètres' : 'Modifier les paramètres';
+}
+
+function parseCounterParticipantsInput(text) {
+  return String(text || '')
+    .split(/[\n,;]+/)
+    .map(entry => entry.trim())
+    .filter(Boolean)
+    .map(entry => {
+      let name = entry;
+      let emoji = '';
+      const separatorMatch = entry.match(/^(.*?)\s*[|:=]\s*(.+)$/);
+      if (separatorMatch) {
+        name = separatorMatch[1].trim();
+        emoji = separatorMatch[2].trim();
+      } else {
+        const parts = entry.split(/\s+/);
+        const last = parts[parts.length - 1];
+        if (looksLikeEmoji(last)) {
+          emoji = last.trim();
+          parts.pop();
+          name = parts.join(' ').trim();
+        }
+      }
+      if (!name) return null;
+      return { name, emoji };
+    })
+    .filter(Boolean);
+}
+
+const LOOKS_LIKE_EMOJI_REGEX = /\p{Extended_Pictographic}/u;
+
+function looksLikeEmoji(text) {
+  if (!text) return false;
+  return LOOKS_LIKE_EMOJI_REGEX.test(text);
+}
+
+function setCounterParticipants(entries) {
+  ensureCounterDefaults();
+  const normalized = [];
+  entries.forEach(entry => {
+    const name = entry?.name?.trim();
+    if (!name) return;
+    const lower = name.toLowerCase();
+    if (!normalized.some(item => item.lower === lower)) {
+      normalized.push({ lower, name, emoji: entry.emoji?.trim() || '' });
+    }
+  });
+  const current = state.counter.participants || [];
+  let paletteIndex = current.length;
+  state.counter.participants = normalized.map(entry => {
+    const existing = current.find(participant => participant.name.toLowerCase() === entry.name.toLowerCase());
+    if (existing) {
+      return {
+        ...existing,
+        name: entry.name,
+        emoji: entry.emoji || existing.emoji || '',
+      };
+    }
+    const color = COUNTER_COLOR_PALETTE[paletteIndex % COUNTER_COLOR_PALETTE.length];
+    paletteIndex += 1;
+    return { id: generateCounterParticipantId(), name: entry.name, entries: {}, color, emoji: entry.emoji || '' };
+  });
+}
+
+function fillCounterParticipantsInput(refs) {
+  if (!refs?.participantsInput) return;
+  const lines = (state.counter.participants || []).map(participant =>
+    participant.emoji ? `${participant.name} : ${participant.emoji}` : participant.name
+  );
+  refs.participantsInput.value = lines.join('\n');
 }
 
 /* =========================================================
@@ -2399,6 +2843,52 @@ function ensureLandingDefaults() {
   });
 }
 
+function ensureCounterDefaults() {
+  if (!state.counter || typeof state.counter !== 'object') {
+    state.counter = deepClone(DEFAULT_STATE.counter);
+  }
+  if (typeof state.counter.label !== 'string') state.counter.label = '';
+  if (!Array.isArray(state.counter.participants)) state.counter.participants = [];
+  const todayKey = toDateKey(new Date());
+
+  if (typeof state.counter.value !== 'undefined' && !state.counter.participants.length) {
+    const fallbackName = state.counter.label ? state.counter.label : 'Participant';
+    const value = Math.max(0, Number(state.counter.value) || 0);
+    state.counter.participants = [
+      {
+        id: generateCounterParticipantId(),
+        name: capitalizeLabel(fallbackName),
+        entries: { [todayKey]: value },
+      },
+    ];
+    delete state.counter.value;
+  }
+
+  state.counter.participants = state.counter.participants.map((participant, idx) => {
+    const safeName = (participant.name || 'Participant').trim() || 'Participant';
+    const entries = isPlainObject(participant.entries) ? { ...participant.entries } : {};
+    if (typeof participant.value !== 'undefined') {
+      entries[todayKey] = Math.max(0, Number(participant.value) || 0);
+    }
+    const color = participant.color || COUNTER_COLOR_PALETTE[idx % COUNTER_COLOR_PALETTE.length];
+    return {
+      id: participant.id || generateCounterParticipantId(),
+      name: safeName,
+      entries,
+      color,
+      emoji: participant.emoji || '',
+    };
+  });
+
+  const selected = parseDateKey(state.counter.selectedDate) || new Date();
+  counterSelectedDateKey = toDateKey(selected);
+  state.counter.selectedDate = counterSelectedDateKey;
+
+  const anchor = parseDateKey(state.counter.weekAnchor) || startOfWeek(selected);
+  counterWeekAnchor = anchor;
+  state.counter.weekAnchor = toDateKey(anchor);
+}
+
 function addLandingTask(dateKey, task) {
   if (!dateKey) return;
   const tasks = state.landing.calendar[dateKey] ? [...state.landing.calendar[dateKey]] : [];
@@ -2507,6 +2997,10 @@ function parseDateKey(key) {
 
 function generateLandingTaskId() {
   return `task-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function generateCounterParticipantId() {
+  return `counter-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
 }
 
 function capitalizeLabel(text) {

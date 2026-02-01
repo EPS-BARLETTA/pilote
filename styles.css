@@ -193,18 +193,19 @@ body[data-page="landing"] {
 }
 
 .portal-row-primary {
-  display: flex;
-  justify-content: center;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
 }
 
 .portal-row-primary .portal {
-  width: min(100%, 420px);
+  width: 100%;
 }
 
 .portal-row-secondary {
   display: grid;
   gap: 16px;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
 }
 
 .portal {
@@ -563,6 +564,10 @@ body[data-page="landing"] {
   .calendar-week {
     grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   }
+}
+
+.portal-counter {
+  background: linear-gradient(135deg, #f4f7ff, #eefcf6);
 }
 
 .day-fullscreen {
@@ -981,6 +986,219 @@ body[data-page="bilan"] .dashboard .card:nth-of-type(3n) {
   width: 100%;
   height: 100%;
   object-fit: contain;
+}
+
+.counter-hero {
+  background: linear-gradient(145deg, #fff2f2, #fff8ef);
+  border: 1px solid rgba(255, 193, 170, 0.4);
+}
+
+.counter-config {
+  background: #f9fbff;
+}
+
+.counter-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.counter-form input {
+  flex: 1 1 260px;
+  border: 1px solid rgba(24, 34, 48, 0.16);
+  border-radius: 16px;
+  padding: 12px 14px;
+  font-size: 1rem;
+}
+
+.counter-form textarea {
+  flex: 1 1 260px;
+  border: 1px solid rgba(24, 34, 48, 0.16);
+  border-radius: 16px;
+  padding: 12px 14px;
+  font-size: 1rem;
+  resize: vertical;
+}
+
+.counter-tip {
+  margin: 4px 0 0;
+  color: var(--muted);
+  width: 100%;
+}
+
+.counter-form .btn {
+  flex: 0 0 auto;
+  align-self: flex-start;
+}
+
+.counter-page.counter-ready #counterConfigCard {
+  display: none;
+}
+
+.counter-page.counter-editing #counterConfigCard {
+  display: block;
+}
+
+.counter-page.counter-ready .counter-edit-btn,
+.counter-page.counter-editing .counter-edit-btn {
+  display: inline-flex;
+}
+
+.counter-edit-btn {
+  align-self: center;
+  margin-bottom: 12px;
+  display: none;
+}
+
+.counter-display {
+  text-align: center;
+  background: #fff;
+  border: 1px solid rgba(24, 34, 48, 0.08);
+}
+
+.counter-week-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 20px 0 12px;
+}
+
+.counter-week-btn {
+  min-width: 48px;
+}
+
+.counter-week-days {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+}
+
+.counter-week-days li {
+  margin: 0;
+}
+
+.counter-week-days button {
+  border: 1px solid rgba(24, 34, 48, 0.2);
+  border-radius: 14px;
+  padding: 8px 10px;
+  background: #fff;
+  font-weight: 700;
+  cursor: pointer;
+  min-width: 70px;
+  font-size: 0.9rem;
+}
+
+.counter-week-days button.is-selected {
+  background: rgba(31, 124, 255, 0.15);
+  border-color: rgba(31, 124, 255, 0.4);
+}
+
+.counter-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 18px;
+  margin-top: 18px;
+}
+
+.counter-person {
+  border: 1px solid var(--counter-card-border, rgba(24, 34, 48, 0.08));
+  border-radius: 18px;
+  padding: 16px;
+  text-align: left;
+  background: var(--counter-card-bg, #fdfdfd);
+}
+
+.counter-person-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.counter-person-head h3 {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.counter-person-emoji {
+  font-size: 1.6rem;
+}
+
+.counter-reset-btn {
+  font-size: 0.85rem;
+}
+
+.counter-value {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  margin: 18px 0;
+}
+
+.counter-person-week {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.counter-person-day {
+  border: 1px solid rgba(24, 34, 48, 0.12);
+  border-radius: 12px;
+  padding: 6px 4px;
+  font-size: 0.8rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  background: rgba(255, 255, 255, 0.65);
+}
+
+.counter-person-day strong {
+  font-size: 0.85rem;
+}
+
+.counter-person-day.is-selected {
+  border-color: rgba(31, 124, 255, 0.5);
+  background: rgba(31, 124, 255, 0.12);
+}
+
+.counter-value span {
+  font-size: 3rem;
+  font-weight: 800;
+  min-width: 80px;
+  display: inline-flex;
+  justify-content: center;
+}
+
+.counter-btn {
+  border: none;
+  border-radius: 20px;
+  padding: 14px 20px;
+  font-size: 1.2rem;
+  font-weight: 800;
+  background: #f1f2f7;
+  cursor: pointer;
+  min-width: 70px;
+  transition: transform 0.15s ease, background 0.2s ease;
+}
+
+.counter-btn-plus {
+  background: #1f7cff;
+  color: #fff;
+}
+
+.counter-btn:active {
+  transform: scale(0.96);
 }
 
 .child-nav { display: flex; gap: 8px; }
